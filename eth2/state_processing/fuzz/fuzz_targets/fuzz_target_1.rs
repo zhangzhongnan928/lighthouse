@@ -25,7 +25,6 @@ fuzz_target!(|data: &[u8]| {
     if !block.is_err() {
         per_block_processing(&mut state, &block.unwrap(), &spec);
     }
-
 });
 
 fn get_builder(spec: &ChainSpec) -> (BlockProcessingBuilder<FoundationEthSpec>) {
