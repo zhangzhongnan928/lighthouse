@@ -9,7 +9,7 @@ pub mod per_slot_processing;
 
 pub use get_genesis_state::get_genesis_state;
 pub use per_block_processing::{
-    errors::{BlockInvalid, BlockProcessingError},
+    block_processing_builder, errors::{BlockInvalid, BlockProcessingError},
     per_block_processing, per_block_processing_without_verifying_block_signature,
 };
 pub use per_epoch_processing::{errors::EpochProcessingError, per_epoch_processing};

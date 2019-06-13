@@ -8,6 +8,10 @@ publish = false
 [package.metadata]
 cargo-fuzz = true
 
+[dependencies]
+ssz = { path = "../../utils/ssz" }
+types = { path = "../../types" }
+
 [dependencies.state_processing]
 path = ".."
 [dependencies.libfuzzer-sys]
