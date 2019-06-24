@@ -118,7 +118,7 @@ pub fn process_block_header<T: EthSpec>(
             block: block.previous_block_root,
         }
     );
-
+    
     state.latest_block_header = block.temporary_block_header(spec);
 
     Ok(())

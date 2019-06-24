@@ -5,24 +5,26 @@ extern crate state_processing;
 extern crate types;
 
 use ssz::{Decode, DecodeError};
+use std::env;
+use std::fs::File;
+use std::io::prelude::*;
 use types::*;
 use state_processing::{per_block_processing, block_processing_builder::BlockProcessingBuilder};
 
 
 // Fuzz per_block_processing
 fuzz_target!(|data: &[u8]| {
-    // Generate a chain_spec
-    let spec = FoundationEthSpec::spec();
-
-    // Generate a BeaconState after genesis
-    let builder = get_builder(&spec);
-    let (_, mut state) = builder.build(None, None, &spec);
-
     // Convert data to a BeaconBlock
     let block = BeaconBlock::from_ssz_bytes(&data) ;
 
-    // Fuzz per_block_processing (if decoding was successful)
     if !block.is_err() {
+        println!("Processing block");
+        // Generate a chain_spec
+        let spec = FoundationEthSpec::spec();
+
+        let mut state = read_state_from_file();
+
+        // Fuzz per_block_processing (if decoding was successful)
         per_block_processing(&mut state, &block.unwrap(), &spec);
     }
 });
@@ -37,4 +39,12 @@ fn get_builder(spec: &ChainSpec) -> (BlockProcessingBuilder<FoundationEthSpec>) 
     builder.build_caches(&spec);
 
     (builder)
+}
+
+fn read_state_from_file() -> BeaconState<FoundationEthSpec> {
+    let mut file = File::open("fuzz/state.bin").unwrap();
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer);
+
+    BeaconState::from_ssz_bytes(&buffer).unwrap()
 }
