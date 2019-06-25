@@ -20,7 +20,7 @@ fuzz_target!(|data: &[u8]| {
     if !block.is_err() {
         println!("Processing block");
         // Generate a chain_spec
-        let spec = FoundationEthSpec::spec();
+        let spec = MinimalEthSpec::default_spec();
 
         let mut state = read_state_from_file();
 
@@ -29,19 +29,20 @@ fuzz_target!(|data: &[u8]| {
     }
 });
 
-fn get_builder(spec: &ChainSpec) -> (BlockProcessingBuilder<FoundationEthSpec>) {
+fn get_builder(spec: &ChainSpec) -> (BlockProcessingBuilder<MinimalEthSpec>) {
     let num_validators = 2;
     let mut builder = BlockProcessingBuilder::new(num_validators, &spec);
 
     // Set the state and block to be in the last slot of the 4th epoch.
-    let last_slot_of_epoch = (spec.genesis_epoch + 4).end_slot(spec.slots_per_epoch);
+    let slot =
+        (MinimalEthSpec::genesis_epoch() + 4).end_slot(MinimalEthSpec::slots_per_epoch());
     builder.set_slot(last_slot_of_epoch, &spec);
     builder.build_caches(&spec);
 
     (builder)
 }
 
-fn read_state_from_file() -> BeaconState<FoundationEthSpec> {
+fn read_state_from_file() -> BeaconState<MinimalEthSpec> {
     let mut file = File::open("fuzz/state.bin").unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer);
