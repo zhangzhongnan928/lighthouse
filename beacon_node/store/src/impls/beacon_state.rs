@@ -6,7 +6,7 @@ use types::beacon_state::{CommitteeCache, CACHED_EPOCHS};
 
 /// A container for storing `BeaconState` components.
 #[derive(Encode, Decode)]
-struct StorageContainer {
+pub struct StorageContainer {
     state_bytes: Vec<u8>,
     committee_caches_bytes: Vec<Vec<u8>>,
 }

@@ -4,17 +4,19 @@ extern crate dirs;
 extern crate hex;
 extern crate ssz;
 extern crate state_processing;
+extern crate store;
 extern crate types;
 
-use ssz::{Decode, DecodeError, Encode};
-use std::env;
+use ssz::{Decode, Encode};
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{BufReader, LineWriter};
 use std::path::PathBuf;
+use std::convert::TryInto;
+use store::StorageContainer;
 use types::*;
 use types::test_utils::TestingBeaconStateBuilder;
-use state_processing::{per_block_processing, block_processing_builder::BlockProcessingBuilder};
+use state_processing::process_block_header;
 
 pub const MINIMAL_STATE_FILE: &str = "fuzzer_minimal_state.bin";
 pub const KEYPAIRS_FILE: &str = "fuzzer_keypairs.txt";
@@ -26,14 +28,14 @@ fuzz_target!(|data: &[u8]| {
     let block = BeaconBlock::from_ssz_bytes(&data);
 
     if !block.is_err() {
-        println!("Processing block");
+        println!("Processing block header");
         // Generate a chain_spec
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
         // Fuzz per_block_processing (if decoding was successful)
         let block = &block.unwrap();
-        per_block_processing(&mut state, &block, &spec);
+        println!("Valid block header? {}", !process_block_header(&mut state, &block, &spec, true).is_err());
     }
 });
 
@@ -55,9 +57,11 @@ pub fn from_minimal_state_file(spec: &ChainSpec) -> BeaconState<MinimalEthSpec> 
 pub fn read_state_from_file(path: &PathBuf) -> BeaconState<MinimalEthSpec> {
     let mut file = File::open(path).unwrap();
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer);
+    let _ = file.read_to_end(&mut buffer);
 
-    BeaconState::from_ssz_bytes(&buffer).unwrap()
+    let storage = StorageContainer::from_ssz_bytes(&buffer).unwrap();
+
+    storage.try_into().unwrap()
 }
 
 // Create a fuzzer_minimal_state.bin file
@@ -66,11 +70,12 @@ pub fn create_minimal_state_file(path: &PathBuf, spec: &ChainSpec) -> BeaconStat
     let (state, _) = build_minimal_state(&spec);
 
     // Convert the state to bytes
-    let state_bytes = state.as_ssz_bytes();
+    let storage = StorageContainer::new(&state);
+    let storage_bytes = storage.as_ssz_bytes();
 
     // Write state to file
     let mut file = File::create(path).unwrap();
-    file.write_all(&state_bytes);
+    let _ = file.write_all(&storage_bytes);
 
     state
 }
@@ -127,13 +132,13 @@ pub fn create_keypairs_file(path: &PathBuf, spec: &ChainSpec) -> Vec<Keypair> {
         let pk = hex::encode(pair.pk.as_ssz_bytes());
         let sk = hex::encode(pair.sk.as_ssz_bytes());
 
-        file.write_all(pk.as_bytes());
-        file.write_all(b",");
-        file.write_all(sk.as_bytes());
-        file.write_all(b"\n");
+        let _ = file.write_all(pk.as_bytes());
+        let _ = file.write_all(b",");
+        let _ = file.write_all(sk.as_bytes());
+        let _ = file.write_all(b"\n");
     }
 
-    file.flush();
+    let _ = file.flush();
     keypairs
 }
 
@@ -145,7 +150,7 @@ pub fn build_minimal_state(spec: &ChainSpec) -> (BeaconState<MinimalEthSpec>, Ve
     let slot =
         (MinimalEthSpec::genesis_epoch() + 4).end_slot(MinimalEthSpec::slots_per_epoch());
     state_builder.teleport_to_slot(slot);
-    state_builder.build_caches(&spec);
+    let _ = state_builder.build_caches(&spec);
 
     state_builder.build()
 }

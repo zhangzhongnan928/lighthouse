@@ -12,6 +12,7 @@ cargo-fuzz = true
 dirs = "1.0"
 hex = "0.3"
 ssz = { path = "../../utils/ssz" }
+store =  { path = "../../../beacon_node/store" }
 tree_hash = { path = "../../utils/tree_hash" }
 types = { path = "../../types" }
 
@@ -29,5 +30,13 @@ name = "fuzz_target_random_attestations"
 path = "fuzz_targets/fuzz_target_random_attestations.rs"
 
 [[bin]]
-name = "fuzz_target_random_blocks"
-path = "fuzz_targets/fuzz_target_random_blocks.rs"
+name = "fuzz_target_random_attester_slashing"
+path = "fuzz_targets/fuzz_target_random_attester_slashing.rs"
+
+[[bin]]
+name = "fuzz_target_random_block_headers"
+path = "fuzz_targets/fuzz_target_random_block_headers.rs"
+
+[[bin]]
+name = "fuzz_target_signed_blocks"
+path = "fuzz_targets/fuzz_target_signed_blocks.rs"

@@ -1,48 +1,66 @@
 #![no_main]
-extern crate hex;
 #[macro_use] extern crate libfuzzer_sys;
+extern crate dirs;
+extern crate hex;
 extern crate ssz;
 extern crate state_processing;
 extern crate store;
-extern crate types;
 extern crate tree_hash;
+extern crate types;
 
 use ssz::{Decode, DecodeError, Encode};
 use std::env;
 use std::fs::File;
-use std::io::{BufReader, LineWriter};
 use std::io::prelude::*;
+use std::io::{BufReader, LineWriter};
 use std::path::PathBuf;
 use std::convert::TryInto;
 use store::StorageContainer;
-use tree_hash::SignedRoot;
+use tree_hash::{SignedRoot, TreeHash};
 use types::*;
-use types::test_utils::{TestingBeaconBlockBuilder, TestingBeaconStateBuilder};
-use state_processing::{process_attestations, block_processing_builder::BlockProcessingBuilder};
+use types::test_utils::TestingBeaconStateBuilder;
+use state_processing::{per_block_processing, block_processing_builder::BlockProcessingBuilder};
 
 pub const MINIMAL_STATE_FILE: &str = "fuzzer_minimal_state.bin";
 pub const KEYPAIRS_FILE: &str = "fuzzer_keypairs.txt";
 pub const NUM_VALIDATORS: usize = 8;
 
-// Fuzz per_block_processing - BeaconBlock.Eth1Data
+// Fuzz `per_block_processing()`
 fuzz_target!(|data: &[u8]| {
-    // Convert data to Attestation
-    let attestation = Attestation::from_ssz_bytes(data);
+    // Convert data to a BeaconBlock
+    let block = BeaconBlock::from_ssz_bytes(&data);
 
-    // If valid attestation attempt to process it
-    if !attestation.is_err() {
+    if !block.is_err() {
         println!("Processing block");
-
         // Generate a chain_spec
         let spec = MinimalEthSpec::default_spec();
+        let mut state = from_minimal_state_file(&spec);
+        let keypairs = from_keypairs_file(&spec);
 
-        // Generate a BeaconState and BeaconBlock (with Fuzzed - Attestation)
-        let state = from_minimal_state_file(&spec);
 
-        // Fuzz per_block_processing (Attestation)
-        println!("Valid block? {}", !process_attestations(&mut state, &[attestation.unwrap()], &spec).is_err());
+        // Set a valid block Signature
+        let mut block = block.unwrap();
+        sign_block(&mut block, &state, keypairs, &spec);
+
+
+        // Fuzz per_block_processing (if decoding was successful)
+        println!("Valid block? {}", !per_block_processing(&mut state, &block, &spec).is_err());
     }
 });
+
+fn sign_block(block: &mut BeaconBlock, state: &BeaconState<MinimalEthSpec>, keypairs: Vec<Keypair>, spec: &ChainSpec) {
+    // Get secret key of the proposer
+    let proposer_index = state
+        .get_beacon_proposer_index(state.slot, RelativeEpoch::Current, spec)
+        .unwrap();
+    let keypair = &keypairs[proposer_index];
+
+    // Sign Block
+    let message = block.signed_root();
+    let epoch = block.slot.epoch(MinimalEthSpec::slots_per_epoch());
+    let domain = spec.get_domain(epoch, Domain::BeaconProposer, &state.fork);
+    block.signature = Signature::new(&message, domain, &keypair.sk);
+}
 
 // Will either load minimal_state.bin OR will create the file for future runs.
 pub fn from_minimal_state_file(spec: &ChainSpec) -> BeaconState<MinimalEthSpec> {

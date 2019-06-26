@@ -19,6 +19,7 @@ pub mod iter;
 pub use self::leveldb_store::LevelDB as DiskStore;
 pub use self::memory_store::MemoryStore;
 pub use errors::Error;
+pub use impls::*;
 pub use types::*;
 
 /// An object capable of storing and retrieving objects implementing `StoreItem`.

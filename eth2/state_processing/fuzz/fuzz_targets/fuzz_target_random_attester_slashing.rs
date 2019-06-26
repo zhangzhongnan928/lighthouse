@@ -18,7 +18,7 @@ use store::StorageContainer;
 use tree_hash::SignedRoot;
 use types::*;
 use types::test_utils::{TestingBeaconBlockBuilder, TestingBeaconStateBuilder};
-use state_processing::{process_attestations, block_processing_builder::BlockProcessingBuilder};
+use state_processing::{process_attester_slashings, block_processing_builder::BlockProcessingBuilder};
 
 pub const MINIMAL_STATE_FILE: &str = "fuzzer_minimal_state.bin";
 pub const KEYPAIRS_FILE: &str = "fuzzer_keypairs.txt";
@@ -26,22 +26,40 @@ pub const NUM_VALIDATORS: usize = 8;
 
 // Fuzz per_block_processing - BeaconBlock.Eth1Data
 fuzz_target!(|data: &[u8]| {
-    // Convert data to Attestation
+    // CODE FOR GENERATING ATTESTER_SLASHING
     let attestation = Attestation::from_ssz_bytes(data);
 
-    // If valid attestation attempt to process it
     if !attestation.is_err() {
+        let attestation_1 = attestation.unwrap();
+        let mut attestation_2 = attestation_1.clone();
+        let mut block_root_bytes = attestation_2.data.beacon_block_root.as_ssz_bytes();
+        block_root_bytes[0] += 1 % 8;
+
+        let spec = MinimalEthSpec::default_spec();
+        let state = from_minimal_state_file(&spec);
+
+        // convert to index in state_processing/src/common
+        let index_attestation_1 = convert_to_indexed(&state, &attestation_1).unwrap();
+    }
+
+    /*
+    // Convert data to Attestation
+    let attester_slashing = AttesterSlashing::from_ssz_bytes(data);
+
+    // If valid attestation attempt to process it
+    if !attester_slashing.is_err() {
         println!("Processing block");
 
         // Generate a chain_spec
         let spec = MinimalEthSpec::default_spec();
 
         // Generate a BeaconState and BeaconBlock (with Fuzzed - Attestation)
-        let state = from_minimal_state_file(&spec);
+        let mut state = from_minimal_state_file(&spec);
 
         // Fuzz per_block_processing (Attestation)
-        println!("Valid block? {}", !process_attestations(&mut state, &[attestation.unwrap()], &spec).is_err());
+        println!("Valid block? {}", !process_attester_slashings(&mut state, &[attester_slashing.unwrap()], &spec).is_err());
     }
+    */
 });
 
 // Will either load minimal_state.bin OR will create the file for future runs.
