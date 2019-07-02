@@ -1,28 +1,28 @@
-extern crate hex;
 extern crate hashing;
+extern crate hex;
 extern crate ssz;
 extern crate state_processing;
 extern crate store;
-extern crate types;
 extern crate tree_hash;
+extern crate types;
 #[macro_use]
 extern crate lazy_static;
 
 use ssz::{Decode, Encode};
-use std::fs::File;
-use std::io::{BufReader, LineWriter};
-use std::io::prelude::*;
-use std::path::PathBuf;
 use std::convert::TryInto;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::{BufReader, LineWriter};
+use std::path::PathBuf;
 use store::StorageContainer;
 use tree_hash::TreeHash;
-use types::*;
 use types::test_utils::TestingBeaconStateBuilder;
+use types::*;
 
 mod generate_corpus;
 mod merkle_proof;
-pub use merkle_proof::*;
 pub use generate_corpus::*;
+pub use merkle_proof::*;
 
 pub const MINIMAL_STATE_FILE: &str = "fuzzer_minimal_state.bin";
 pub const KEYPAIRS_FILE: &str = "fuzzer_keypairs.txt";
@@ -46,7 +46,11 @@ pub fn insert_eth1_data(state: &mut BeaconState<MinimalEthSpec>, deposit: &mut D
     state.latest_eth1_data = eth1_data;
 }
 
-pub fn increase_state_epoch(state: &mut BeaconState::<MinimalEthSpec>, epoch: Epoch, spec: &ChainSpec) {
+pub fn increase_state_epoch(
+    state: &mut BeaconState<MinimalEthSpec>,
+    epoch: Epoch,
+    spec: &ChainSpec,
+) {
     state.slot = epoch.end_slot(MinimalEthSpec::slots_per_epoch());
     state.previous_justified_epoch = epoch - 3;
     state.current_justified_epoch = epoch - 2;
@@ -58,8 +62,8 @@ pub fn increase_state_epoch(state: &mut BeaconState::<MinimalEthSpec>, epoch: Ep
 // Will either load minimal_state.bin OR will create the file for future runs.
 pub fn from_minimal_state_file(spec: &ChainSpec) -> BeaconState<MinimalEthSpec> {
     let dir = dirs::home_dir()
-    .and_then(|home| Some(home.join(".lighthouse")))
-    .unwrap_or_else(|| PathBuf::from(""));
+        .and_then(|home| Some(home.join(".lighthouse")))
+        .unwrap_or_else(|| PathBuf::from(""));
     let file = dir.join(MINIMAL_STATE_FILE);
 
     if file.exists() {
@@ -99,8 +103,8 @@ pub fn create_minimal_state_file(path: &PathBuf, spec: &ChainSpec) -> BeaconStat
 // Will either load minimal_state.bin OR will create the file for future runs.
 pub fn from_keypairs_file(spec: &ChainSpec) -> Vec<Keypair> {
     let dir = dirs::home_dir()
-    .and_then(|home| Some(home.join(".lighthouse")))
-    .unwrap_or_else(|| PathBuf::from(""));
+        .and_then(|home| Some(home.join(".lighthouse")))
+        .unwrap_or_else(|| PathBuf::from(""));
     let file = dir.join(KEYPAIRS_FILE);
 
     if file.exists() {
@@ -111,7 +115,7 @@ pub fn from_keypairs_file(spec: &ChainSpec) -> Vec<Keypair> {
 }
 
 // Read the deterministic keypairs from file
-fn read_keypairs(path: &PathBuf) -> Vec<Keypair>{
+fn read_keypairs(path: &PathBuf) -> Vec<Keypair> {
     let file = File::open(path).unwrap();
     let file = BufReader::new(file);
     let mut keypairs: Vec<Keypair> = vec![];
@@ -124,10 +128,7 @@ fn read_keypairs(path: &PathBuf) -> Vec<Keypair>{
 
         let pk = PublicKey::from_ssz_bytes(&pk).unwrap();
         let sk = SecretKey::from_ssz_bytes(&sk).unwrap();
-        let pair = Keypair {
-            sk,
-            pk,
-        };
+        let pair = Keypair { sk, pk };
         keypairs.push(pair);
     }
 
@@ -172,7 +173,10 @@ pub fn build_minimal_state(spec: &ChainSpec) -> (BeaconState<MinimalEthSpec>, Ve
 }
 
 // Creates a BeaconState in the last slot of the 4th Epoch.
-pub fn build_minimal_state_with_validators(num_validators: usize, spec: &ChainSpec) -> (BeaconState<MinimalEthSpec>, Vec<Keypair>) {
+pub fn build_minimal_state_with_validators(
+    num_validators: usize,
+    spec: &ChainSpec,
+) -> (BeaconState<MinimalEthSpec>, Vec<Keypair>) {
     let mut state_builder =
         TestingBeaconStateBuilder::from_default_keypairs_file_if_exists(num_validators, &spec);
     // Set the state and block to be in the last slot of the 4th epoch.

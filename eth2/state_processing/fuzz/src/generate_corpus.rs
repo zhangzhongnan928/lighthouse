@@ -1,18 +1,57 @@
-extern crate hex;
 extern crate hashing;
+extern crate hex;
 extern crate ssz;
 extern crate state_processing;
 extern crate store;
-extern crate types;
 extern crate tree_hash;
+extern crate types;
 
+use crate::{
+    from_keypairs_file, from_minimal_state_file, increase_state_epoch, insert_eth1_data,
+    NUM_VALIDATORS, STATE_EPOCH,
+};
 use ssz::Encode;
+use state_processing::{
+    process_attester_slashings, process_block_header, process_deposits, process_exits,
+    process_proposer_slashings, process_randao, process_transfers,
+};
 use tree_hash::SignedRoot;
+use types::test_utils::{
+    TestingAttesterSlashingBuilder, TestingBeaconBlockBuilder, TestingDepositBuilder,
+    TestingProposerSlashingBuilder, TestingVoluntaryExitBuilder,
+};
 use types::*;
-use types::test_utils::{TestingAttesterSlashingBuilder, TestingBeaconBlockBuilder, TestingDepositBuilder, TestingVoluntaryExitBuilder};
-use state_processing::{process_attester_slashings, process_block_header, process_deposits, process_exits, process_randao, process_transfers};
-use crate::{from_minimal_state_file, from_keypairs_file, insert_eth1_data, increase_state_epoch, NUM_VALIDATORS, STATE_EPOCH};
 
+// Code for printing an AttesterSlashing to terminal (use for creating a corpus)
+pub fn generate_proposer_slashing() {
+    println!("Generating Code");
+    // Generate a chain_spec
+    let spec = MinimalEthSpec::default_spec();
+
+    // Generate a BeaconState and BeaconBlock (with Fuzzed - Attestation)
+    let mut state = from_minimal_state_file(&spec);
+
+    // Create Attester Slashing
+    let keypairs = from_keypairs_file(&spec);
+    let validator_index = 0;
+
+    let signer = |_validator_index: u64, message: &[u8], epoch: Epoch, domain: Domain| {
+        let domain = spec.get_domain(epoch, domain, &state.fork);
+        Signature::new(message, domain, &keypairs[validator_index].sk)
+    };
+
+    let proposer_slashing = TestingProposerSlashingBuilder::double_vote::<MinimalEthSpec, _>(
+        validator_index as u64,
+        signer,
+    );
+
+    assert!(!process_proposer_slashings(&mut state, &[proposer_slashing.clone()], &spec).is_err());
+
+    println!(
+        "ProposerSlashing {}",
+        hex::encode(proposer_slashing.as_ssz_bytes())
+    );
+}
 
 // Code for generating VoluntaryExit and print to terminal
 pub fn generate_voluntary_exit() {
@@ -25,7 +64,9 @@ pub fn generate_voluntary_exit() {
     increase_state_epoch(&mut state, new_epoch, &spec);
 
     // Let proposer be the validator to exit
-    let proposer_index = state.get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec).unwrap();
+    let proposer_index = state
+        .get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec)
+        .unwrap();
     let keypair = keypairs[proposer_index].clone();
 
     // Build a Voluntary Exit
@@ -44,12 +85,16 @@ pub fn generate_block_header() {
     let mut state = from_minimal_state_file(&spec);
     let keypairs = from_keypairs_file(&spec);
 
-    let proposer_index = state.get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec).unwrap();
+    let proposer_index = state
+        .get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec)
+        .unwrap();
     let keypair = &keypairs[proposer_index];
 
     let mut builder = TestingBeaconBlockBuilder::new(&spec);
     builder.set_slot(state.slot);
-    builder.set_previous_block_root(Hash256::from_slice(&state.latest_block_header.signed_root()));
+    builder.set_previous_block_root(Hash256::from_slice(
+        &state.latest_block_header.signed_root(),
+    ));
     let block = builder.build::<MinimalEthSpec>(&keypair.sk, &state.fork, &spec);
 
     assert!(!process_block_header(&mut state, &block, &spec, true).is_err());
@@ -83,7 +128,10 @@ pub fn generate_attester_slashing() {
 
     // Verify AttesterSlashing is valid and print to terminal
     assert!(!process_attester_slashings(&mut state, &[attester_slashing.clone()], &spec).is_err());
-    println!("AttesterSlashing {}", hex::encode(attester_slashing.as_ssz_bytes()));
+    println!(
+        "AttesterSlashing {}",
+        hex::encode(attester_slashing.as_ssz_bytes())
+    );
 }
 
 // Generate a Deposit and print to terminal
@@ -125,11 +173,15 @@ pub fn generate_randao() {
 
     let mut builder = TestingBeaconBlockBuilder::new(&spec);
 
-    let proposer_index = state.get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec).unwrap();
+    let proposer_index = state
+        .get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec)
+        .unwrap();
 
     // Setup block
     builder.set_slot(state.slot);
-    builder.set_previous_block_root(Hash256::from_slice(&state.latest_block_header.signed_root()));
+    builder.set_previous_block_root(Hash256::from_slice(
+        &state.latest_block_header.signed_root(),
+    ));
 
     // Add randao
     let keypair = &keypairs[proposer_index];
@@ -151,7 +203,9 @@ pub fn generate_transfer() {
     let mut state = from_minimal_state_file(&spec);
 
     // Select proposer as payee
-    let proposer_index = state.get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec).unwrap();
+    let proposer_index = state
+        .get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec)
+        .unwrap();
     let keypair = keypairs[proposer_index].clone();
 
     // Create Transfer
