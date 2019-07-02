@@ -3,6 +3,7 @@ members = [
 	"eth2/lmd_ghost",
 	"eth2/operation_pool",
 	"eth2/state_processing",
+	"eth2/state_processing/fuzz",
 	"eth2/types",
 	"eth2/utils/bls",
 	"eth2/utils/boolean-bitfield",

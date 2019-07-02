@@ -19,7 +19,7 @@ fuzz_target!(|data: &[u8]| {
     let eth1_data = Eth1Data::from_ssz_bytes(&data);
 
     if !eth1_data.is_err() {
-        println!("Processing randao");
+        println!("Processing Eth1Data");
         // Generate a chain_spec
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);

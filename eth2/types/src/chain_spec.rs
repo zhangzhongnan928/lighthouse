@@ -203,7 +203,7 @@ impl ChainSpec {
             max_attestations: 128,
             max_deposits: 16,
             max_voluntary_exits: 16,
-            max_transfers: 0,
+            max_transfers: 1, // Note: This was increase for the purpose of fuzzing transfers
 
             /*
              * Signature domains

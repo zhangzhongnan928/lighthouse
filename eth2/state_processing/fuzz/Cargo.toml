@@ -9,6 +9,7 @@ publish = false
 cargo-fuzz = true
 
 [dependencies]
+bls = { path = "../../utils/bls" }
 dirs = "1.0"
 hex = "0.3"
 hashing = { path = "../../utils/hashing" }
@@ -23,12 +24,12 @@ path = ".."
 [dependencies.libfuzzer-sys]
 git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
 
-# Prevent this from interfering with workspaces
-[workspace]
-members = ["."]
-
 [lib]
 path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
 
 [[bin]]
 name = "fuzz_target_random_attestations"
@@ -51,6 +52,10 @@ name = "fuzz_target_random_eth1_data"
 path = "fuzz_targets/fuzz_target_random_eth1_data.rs"
 
 [[bin]]
+name = "fuzz_target_random_exits"
+path = "fuzz_targets/fuzz_target_random_exits.rs"
+
+[[bin]]
 name = "fuzz_target_random_proposer_slashing"
 path = "fuzz_targets/fuzz_target_random_proposer_slashing.rs"
 
@@ -59,5 +64,8 @@ name = "fuzz_target_random_randao"
 path = "fuzz_targets/fuzz_target_random_randao.rs"
 
 [[bin]]
-name = "fuzz_target_signed_blocks"
-path = "fuzz_targets/fuzz_target_signed_blocks.rs"
+name = "fuzz_target_random_transfers"
+path = "fuzz_targets/fuzz_target_random_transfers.rs"
+
+[features]
+fake_crypto = ["bls/fake_crypto"]

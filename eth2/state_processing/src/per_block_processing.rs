@@ -472,18 +472,19 @@ pub fn process_transfers<T: EthSpec>(
     transfers: &[Transfer],
     spec: &ChainSpec,
 ) -> Result<(), Error> {
+    println!("Number of transactions");
     verify!(
         transfers.len() as u64 <= spec.max_transfers,
         Invalid::MaxTransfersExceed
     );
-
+    println!("Verify transactions");
     transfers
         .par_iter()
         .enumerate()
         .try_for_each(|(i, transfer)| {
             verify_transfer(&state, transfer, spec).map_err(|e| e.into_with_index(i))
         })?;
-
+    println!("Execute transactions");
     for (i, transfer) in transfers.iter().enumerate() {
         execute_transfer(state, transfer, spec).map_err(|e| e.into_with_index(i))?;
     }
