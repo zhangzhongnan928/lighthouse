@@ -32,28 +32,28 @@ name = "main"
 path = "src/main.rs"
 
 [[bin]]
-name = "fuzz_target_random_attestations"
-path = "fuzz_targets/fuzz_target_random_attestations.rs"
+name = "fuzz_target_random_attestation"
+path = "fuzz_targets/fuzz_target_random_attestation.rs"
 
 [[bin]]
 name = "fuzz_target_random_attester_slashing"
 path = "fuzz_targets/fuzz_target_random_attester_slashing.rs"
 
 [[bin]]
-name = "fuzz_target_random_block_headers"
-path = "fuzz_targets/fuzz_target_random_block_headers.rs"
+name = "fuzz_target_random_block_header"
+path = "fuzz_targets/fuzz_target_random_block_header.rs"
 
 [[bin]]
-name = "fuzz_target_random_deposits"
-path = "fuzz_targets/fuzz_target_random_deposits.rs"
+name = "fuzz_target_random_deposit"
+path = "fuzz_targets/fuzz_target_random_deposit.rs"
 
 [[bin]]
 name = "fuzz_target_random_eth1_data"
 path = "fuzz_targets/fuzz_target_random_eth1_data.rs"
 
 [[bin]]
-name = "fuzz_target_random_exits"
-path = "fuzz_targets/fuzz_target_random_exits.rs"
+name = "fuzz_target_random_exit"
+path = "fuzz_targets/fuzz_target_random_exit.rs"
 
 [[bin]]
 name = "fuzz_target_random_proposer_slashing"
@@ -64,8 +64,8 @@ name = "fuzz_target_random_randao"
 path = "fuzz_targets/fuzz_target_random_randao.rs"
 
 [[bin]]
-name = "fuzz_target_random_transfers"
-path = "fuzz_targets/fuzz_target_random_transfers.rs"
+name = "fuzz_target_random_transfer"
+path = "fuzz_targets/fuzz_target_random_transfer.rs"
 
 [features]
 fake_crypto = ["bls/fake_crypto"]

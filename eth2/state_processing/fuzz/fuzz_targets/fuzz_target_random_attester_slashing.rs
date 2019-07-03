@@ -20,15 +20,11 @@ fuzz_target!(|data: &[u8]| {
     let attester_slashing = AttesterSlashing::from_ssz_bytes(data);
 
     // If valid attestation attempt to process it
-    if !attester_slashing.is_err() {
-        println!("Processing AttesterSlashing");
+    if attester_slashing.is_ok() {
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
         // Run process_attester_slashings
-        println!(
-            "Valid AttesterSlashing? {}",
-            !process_attester_slashings(&mut state, &[attester_slashing.unwrap()], &spec).is_err()
-        );
+        let _ = process_attester_slashings(&mut state, &[attester_slashing.unwrap()], &spec);
     }
 });

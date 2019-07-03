@@ -372,6 +372,7 @@ pub fn process_deposits<T: EthSpec>(
         Invalid::DepositCountInvalid
     );
 
+    /* COMMENT OUT FOR FUZZER
     // Verify deposits in parallel.
     deposits
         .par_iter()
@@ -379,6 +380,7 @@ pub fn process_deposits<T: EthSpec>(
         .try_for_each(|(i, deposit)| {
             verify_deposit_merkle_proof(state, deposit, spec).map_err(|e| e.into_with_index(i))
         })?;
+    */
 
     // Check `state.deposit_index` and update the state in series.
     for (i, deposit) in deposits.iter().enumerate() {
@@ -472,19 +474,18 @@ pub fn process_transfers<T: EthSpec>(
     transfers: &[Transfer],
     spec: &ChainSpec,
 ) -> Result<(), Error> {
-    println!("Number of transactions");
     verify!(
         transfers.len() as u64 <= spec.max_transfers,
         Invalid::MaxTransfersExceed
     );
-    println!("Verify transactions");
+
     transfers
         .par_iter()
         .enumerate()
         .try_for_each(|(i, transfer)| {
             verify_transfer(&state, transfer, spec).map_err(|e| e.into_with_index(i))
         })?;
-    println!("Execute transactions");
+
     for (i, transfer) in transfers.iter().enumerate() {
         execute_transfer(state, transfer, spec).map_err(|e| e.into_with_index(i))?;
     }

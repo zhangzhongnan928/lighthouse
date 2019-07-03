@@ -17,16 +17,12 @@ fuzz_target!(|data: &[u8]| {
     // Convert data to a BeaconBlock with randao
     let block = BeaconBlock::from_ssz_bytes(&data);
 
-    if !block.is_err() {
-        println!("Processing randao");
+    if block.is_ok() {
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
         // Run process_randao
         let block = &block.unwrap();
-        println!(
-            "Valid Randao? {}",
-            !process_randao(&mut state, &block, &spec).is_err()
-        );
+        let _ = process_randao(&mut state, &block, &spec);
     }
 });

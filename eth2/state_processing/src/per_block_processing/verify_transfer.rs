@@ -48,27 +48,23 @@ fn verify_transfer_parametric<T: EthSpec>(
         .balances
         .get(transfer.sender as usize)
         .ok_or_else(|| Error::Invalid(Invalid::FromValidatorUnknown(transfer.sender)))?;
-    println!("Here 1");
 
     let recipient_balance = *state
         .balances
         .get(transfer.recipient as usize)
         .ok_or_else(|| Error::Invalid(Invalid::FromValidatorUnknown(transfer.recipient)))?;
-    println!("Here 2");
 
     // Safely determine `amount + fee`.
     let total_amount = transfer
         .amount
         .checked_add(transfer.fee)
         .ok_or_else(|| Error::Invalid(Invalid::FeeOverflow(transfer.amount, transfer.fee)))?;
-    println!("Here 3");
 
     // Verify the sender has adequate balance.
     verify!(
-        time_independent_only || sender_balance >= transfer.amount,
+        time_independent_only || sender_balance >= total_amount,
         Invalid::FromBalanceInsufficient(transfer.amount, sender_balance)
     );
-    println!("Here 4");
 
     // Verify sender balance will not be "dust" (i.e., greater than zero but less than the minimum deposit
     // amount).
@@ -78,14 +74,12 @@ fn verify_transfer_parametric<T: EthSpec>(
             || (sender_balance >= (total_amount + spec.min_deposit_amount)),
         Invalid::SenderDust(sender_balance - total_amount, spec.min_deposit_amount)
     );
-    println!("Here 5");
 
     // Verify the recipient balance will not be dust.
     verify!(
         time_independent_only || ((recipient_balance + transfer.amount) >= spec.min_deposit_amount),
         Invalid::RecipientDust(sender_balance - total_amount, spec.min_deposit_amount)
     );
-    println!("Here 6");
 
     // If loosely enforcing `transfer.slot`, ensure the slot is not in the past. Otherwise, ensure
     // the transfer slot equals the state slot.
@@ -100,7 +94,6 @@ fn verify_transfer_parametric<T: EthSpec>(
             Invalid::StateSlotMismatch(state.slot, transfer.slot)
         );
     }
-    println!("Here 7");
 
     // Load the sender `Validator` record from the state.
     let sender_validator = state
@@ -110,7 +103,6 @@ fn verify_transfer_parametric<T: EthSpec>(
 
     let epoch = state.slot.epoch(T::slots_per_epoch());
 
-    println!("Here 8");
     // Ensure one of the following is met:
     //
     // - Time dependent checks are being ignored.
@@ -124,7 +116,6 @@ fn verify_transfer_parametric<T: EthSpec>(
             || total_amount + spec.max_effective_balance <= sender_balance,
         Invalid::FromValidatorIneligableForTransfer(transfer.sender)
     );
-    println!("Here 9");
 
     // Ensure the withdrawal credentials generated from the sender's pubkey match those stored in
     // the validator registry.
@@ -141,7 +132,6 @@ fn verify_transfer_parametric<T: EthSpec>(
             transfer_withdrawal_credentials
         )
     );
-    println!("Here 10");
 
     // Verify the transfer signature.
     let message = transfer.signed_root();
@@ -156,7 +146,6 @@ fn verify_transfer_parametric<T: EthSpec>(
             .verify(&message[..], domain, &transfer.pubkey),
         Invalid::BadSignature
     );
-    println!("Here 11");
 
     Ok(())
 }

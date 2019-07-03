@@ -19,7 +19,6 @@ fuzz_target!(|data: &[u8]| {
     let exit = VoluntaryExit::from_ssz_bytes(&data);
 
     if exit.is_ok() {
-        println!("Processing VoluntaryExit");
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
@@ -30,9 +29,6 @@ fuzz_target!(|data: &[u8]| {
         let exit = exit.unwrap();
 
         // Run process_exits
-        println!(
-            "Valid VoluntaryExit? {}",
-            process_exits(&mut state, &[exit], &spec).is_ok()
-        );
+        let _ = process_exits(&mut state, &[exit], &spec);
     }
 });

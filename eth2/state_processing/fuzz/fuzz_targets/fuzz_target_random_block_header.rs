@@ -17,16 +17,12 @@ fuzz_target!(|data: &[u8]| {
     // Convert data to a BeaconBlock
     let block = BeaconBlock::from_ssz_bytes(&data);
 
-    if !block.is_err() {
-        println!("Processing Block Header");
+    if block.is_ok() {
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
         // Run process_block_header
         let block = &block.unwrap();
-        println!(
-            "Valid Block Header? {}",
-            !process_block_header(&mut state, &block, &spec, true).is_err()
-        );
+        let _ = process_block_header(&mut state, &block, &spec, true);
     }
 });

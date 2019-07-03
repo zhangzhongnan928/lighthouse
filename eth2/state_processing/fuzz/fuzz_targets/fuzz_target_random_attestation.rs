@@ -20,15 +20,11 @@ fuzz_target!(|data: &[u8]| {
     let attestation = Attestation::from_ssz_bytes(data);
 
     // If valid attestation attempt to process it
-    if !attestation.is_err() {
-        println!("Processing Attestation");
+    if attestation.is_ok() {
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
         // Run `process_attestation`
-        println!(
-            "Valid block? {}",
-            !process_attestations(&mut state, &[attestation.unwrap()], &spec).is_err()
-        );
+        let _ = process_attestations(&mut state, &[attestation.unwrap()], &spec);
     }
 });

@@ -19,7 +19,6 @@ fuzz_target!(|data: &[u8]| {
     let transfer = Transfer::from_ssz_bytes(&data);
 
     if transfer.is_ok() {
-        println!("Processing Transfer");
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
@@ -32,9 +31,6 @@ fuzz_target!(|data: &[u8]| {
         let transfer = transfer.unwrap();
 
         // Run process_transfers
-        println!(
-            "Valid Transfer? {}",
-            process_transfers(&mut state, &[transfer], &spec).is_ok()
-        );
+        let _ = process_transfers(&mut state, &[transfer], &spec);
     }
 });
