@@ -10,7 +10,7 @@ extern crate lazy_static;
 
 use ssz::{Decode, Encode};
 use std::convert::TryInto;
-use std::fs::File;
+use std::fs::{DirBuilder, File};
 use std::io::prelude::*;
 use std::io::{BufReader, LineWriter};
 use std::path::PathBuf;
@@ -26,6 +26,7 @@ pub use merkle_proof::*;
 
 pub const MINIMAL_STATE_FILE: &str = "fuzzer_minimal_state.bin";
 pub const KEYPAIRS_FILE: &str = "fuzzer_keypairs.txt";
+pub const TMP_DIR: &str = "/tmp/lighthouse";
 pub const NUM_VALIDATORS: usize = 8;
 pub const STATE_EPOCH: u64 = 4;
 
@@ -61,9 +62,10 @@ pub fn increase_state_epoch(
 
 // Will either load minimal_state.bin OR will create the file for future runs.
 pub fn from_minimal_state_file(spec: &ChainSpec) -> BeaconState<MinimalEthSpec> {
-    let dir = dirs::home_dir()
-        .and_then(|home| Some(home.join(".lighthouse")))
-        .unwrap_or_else(|| PathBuf::from(""));
+    DirBuilder::new()
+        .recursive(true)
+        .create(TMP_DIR).unwrap();
+    let dir = PathBuf::from(TMP_DIR);
     let file = dir.join(MINIMAL_STATE_FILE);
 
     if file.exists() {
@@ -102,9 +104,10 @@ pub fn create_minimal_state_file(path: &PathBuf, spec: &ChainSpec) -> BeaconStat
 
 // Will either load minimal_state.bin OR will create the file for future runs.
 pub fn from_keypairs_file(spec: &ChainSpec) -> Vec<Keypair> {
-    let dir = dirs::home_dir()
-        .and_then(|home| Some(home.join(".lighthouse")))
-        .unwrap_or_else(|| PathBuf::from(""));
+    DirBuilder::new()
+        .recursive(true)
+        .create(TMP_DIR).unwrap();
+    let dir = PathBuf::from(TMP_DIR);
     let file = dir.join(KEYPAIRS_FILE);
 
     if file.exists() {
