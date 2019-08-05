@@ -9,9 +9,10 @@ mod signer;
 use crate::config::Config as ValidatorClientConfig;
 use crate::service::Service as ValidatorService;
 use clap::{App, Arg};
-use eth2_config::{get_data_dir, read_from_file, write_to_file, Eth2Config};
+use eth2_config::{read_from_file, write_to_file, Eth2Config};
 use protos::services_grpc::ValidatorServiceClient;
-use slog::{crit, error, info, o, Drain};
+use slog::{crit, error, info, o, Drain, Level};
+use std::fs;
 use std::path::PathBuf;
 use types::{Keypair, MainnetEthSpec, MinimalEthSpec};
 
@@ -23,9 +24,9 @@ pub const ETH2_CONFIG_FILENAME: &str = "eth2-spec.toml";
 fn main() {
     // Logging
     let decorator = slog_term::TermDecorator::new().build();
-    let drain = slog_term::CompactFormat::new(decorator).build().fuse();
+    let decorator = logging::AlignedTermDecorator::new(decorator, logging::MAX_MESSAGE_WIDTH);
+    let drain = slog_term::FullFormat::new(decorator).build().fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
-    let log = slog::Logger::root(drain, o!());
 
     // CLI
     let matches = App::new("Lighthouse Validator Client")
@@ -35,8 +36,16 @@ fn main() {
         .arg(
             Arg::with_name("datadir")
                 .long("datadir")
+                .short("d")
                 .value_name("DIR")
                 .help("Data directory for keys and databases.")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("logfile")
+                .long("logfile")
+                .value_name("logfile")
+                .help("File path where output will be written.")
                 .takes_value(true),
         )
         .arg(
@@ -64,15 +73,56 @@ fn main() {
                 .possible_values(&["mainnet", "minimal"])
                 .default_value("minimal"),
         )
+        .arg(
+            Arg::with_name("debug-level")
+                .long("debug-level")
+                .value_name("LEVEL")
+                .short("s")
+                .help("The title of the spec constants for chain config.")
+                .takes_value(true)
+                .possible_values(&["info", "debug", "trace", "warn", "error", "crit"])
+                .default_value("info"),
+        )
         .get_matches();
 
-    let data_dir = match get_data_dir(&matches, PathBuf::from(DEFAULT_DATA_DIR)) {
-        Ok(dir) => dir,
-        Err(e) => {
-            crit!(log, "Failed to initialize data dir"; "error" => format!("{:?}", e));
-            return;
+    let drain = match matches.value_of("debug-level") {
+        Some("info") => drain.filter_level(Level::Info),
+        Some("debug") => drain.filter_level(Level::Debug),
+        Some("trace") => drain.filter_level(Level::Trace),
+        Some("warn") => drain.filter_level(Level::Warning),
+        Some("error") => drain.filter_level(Level::Error),
+        Some("crit") => drain.filter_level(Level::Critical),
+        _ => unreachable!("guarded by clap"),
+    };
+    let mut log = slog::Logger::root(drain.fuse(), o!());
+
+    let data_dir = match matches
+        .value_of("datadir")
+        .and_then(|v| Some(PathBuf::from(v)))
+    {
+        Some(v) => v,
+        None => {
+            // use the default
+            let mut default_dir = match dirs::home_dir() {
+                Some(v) => v,
+                None => {
+                    crit!(log, "Failed to find a home directory");
+                    return;
+                }
+            };
+            default_dir.push(DEFAULT_DATA_DIR);
+            default_dir
         }
     };
+
+    // create the directory if needed
+    match fs::create_dir_all(&data_dir) {
+        Ok(_) => {}
+        Err(e) => {
+            crit!(log, "Failed to initialize data dir"; "error" => format!("{}", e));
+            return;
+        }
+    }
 
     let client_config_path = data_dir.join(CLIENT_CONFIG_FILENAME);
 
@@ -101,7 +151,7 @@ fn main() {
     client_config.data_dir = data_dir.clone();
 
     // Update the client config with any CLI args.
-    match client_config.apply_cli_args(&matches) {
+    match client_config.apply_cli_args(&matches, &mut log) {
         Ok(()) => (),
         Err(s) => {
             crit!(log, "Failed to parse ClientConfig CLI arguments"; "error" => s);
@@ -154,12 +204,12 @@ fn main() {
     );
 
     let result = match eth2_config.spec_constants.as_str() {
-        "mainnet" => ValidatorService::<ValidatorServiceClient, Keypair>::start::<MainnetEthSpec>(
+        "mainnet" => ValidatorService::<ValidatorServiceClient, Keypair, MainnetEthSpec>::start(
             client_config,
             eth2_config,
             log.clone(),
         ),
-        "minimal" => ValidatorService::<ValidatorServiceClient, Keypair>::start::<MinimalEthSpec>(
+        "minimal" => ValidatorService::<ValidatorServiceClient, Keypair, MinimalEthSpec>::start(
             client_config,
             eth2_config,
             log.clone(),

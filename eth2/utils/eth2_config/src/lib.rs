@@ -1,6 +1,5 @@
 use clap::ArgMatches;
 use serde_derive::{Deserialize, Serialize};
-use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::PathBuf;
@@ -47,7 +46,7 @@ impl Eth2Config {
     /// invalid.
     pub fn apply_cli_args(&mut self, args: &ArgMatches) -> Result<(), &'static str> {
         if args.is_present("recent-genesis") {
-            self.spec.genesis_time = recent_genesis_time()
+            self.spec.min_genesis_time = recent_genesis_time()
         }
 
         Ok(())
@@ -103,17 +102,5 @@ where
         Ok(Some(config))
     } else {
         Ok(None)
-    }
-}
-
-pub fn get_data_dir(args: &ArgMatches, default_data_dir: PathBuf) -> Result<PathBuf, &'static str> {
-    if let Some(data_dir) = args.value_of("data_dir") {
-        Ok(PathBuf::from(data_dir))
-    } else {
-        let path = dirs::home_dir()
-            .ok_or_else(|| "Unable to locate home directory")?
-            .join(&default_data_dir);
-        fs::create_dir_all(&path).map_err(|_| "Unable to create data_dir")?;
-        Ok(path)
     }
 }

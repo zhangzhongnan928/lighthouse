@@ -1,0 +1,21 @@
+[package]
+name = "eth2_ssz_types"
+version = "0.1.0"
+authors = ["Paul Hauner <paul@paulhauner.com>"]
+edition = "2018"
+
+[lib]
+name = "ssz_types"
+
+[dependencies]
+cached_tree_hash = { path = "../cached_tree_hash" }
+tree_hash = { path = "../tree_hash" }
+serde = "1.0"
+serde_derive = "1.0"
+serde_hex = { path = "../serde_hex" }
+eth2_ssz = { path = "../ssz" }
+typenum = "1.10"
+
+[dev-dependencies]
+serde_yaml = "0.8"
+tree_hash_derive = { path = "../tree_hash_derive" }

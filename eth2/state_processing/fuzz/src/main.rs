@@ -5,34 +5,30 @@ extern crate state_processing_fuzz;
 extern crate types;
 
 use ssz::Decode;
-use state_processing::process_transfers;
+use state_processing::process_attestations;
 use state_processing_fuzz::*;
 use types::*;
 
 pub fn main() {
-    // Subtract overflow in `Here 4`
-    //let bytes = hex::decode("040000000000000001000000000000000010a5d4e800000000bfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbfbf2700000000000000abb2a7f3635928dc438d15a38f2c7d6a166b8c04c76ed59c9da46d4014b63f5fcf00bfbfbf2700000000000000abb2a7f3635928dc438d15a38f2c7d6a166b8c04c76ed59c9da46d4014b63f5fcf0097dcba1393a7b618e49524fcfce0362f6df452da5adff8bd7162a9919f1fa8cb9ba95f2c8e9b033d5a4deba6b30de8").unwrap();
+    // Code for generating corpus'
+    //generate_attestation();
 
-    // Mehdi's
-    //let bytes = hex::decode("000000ffffffffffffff030000000000ffffff000000f6ffffffffffffff0000000000000000000000000000000a00ff0a000000000a003a3a3a3a3a30ff25300000000000000000000a00ff0a3000ff15151515000000000a00ff000000ff00ff0000f6ffffffffffffff000000000000000000000000ffffffff00000a29000000ffffffff00000a2900000000ffff00000a00ff0a2900000000ffff0000ffff0000000a00ffffff0002ff000000fcff00000000000000").unwrap();
+    // Code for checking fuzz crashes
+    let bytes = hex::decode("30010000000000000000000000000000000000000000000000000000000000000800000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002f000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c0000000080000000000000000000000000000000000000000000000000000000000000000032010000a65187cf470e4cd016673c83cc512d5f513a738cb1a77be6846306739992d4ea85df8393ab6ba1beafb7941d8fdab38c0e1b145a88a689d98c5200152c5eafc04ba3f276848164406b773509d23066ee70aa50295da06f0233a738cd3e6a82040302").unwrap();
 
-    // Subtract overflow in `Here 4`
-    let bytes = hex::decode("000000000000000000000000000000000000b8000000000000000000fff6000000007900000000000000000000000000000000000000000000000000ffff0000ffff0000000a00ffffff0002ff000000fcff0000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000d7000000000000000000000000fff600000000790000000000000000000000000000000000000000000000000000000000000000").unwrap();
+    let attestation = Attestation::from_ssz_bytes(&bytes);
 
-    let transfer = Transfer::from_ssz_bytes(&bytes).unwrap();
+    // If valid attestation attempt to process it
+    if attestation.is_ok() {
+        println!("Ok");
 
-    let spec = MinimalEthSpec::default_spec();
-    let mut state = from_minimal_state_file(&spec);
+        let spec = MinimalEthSpec::default_spec();
+        let mut state = from_minimal_state_file(&spec);
 
-    // Increase proposer's balance so transaction is valid
-    let sender = state
-        .get_beacon_proposer_index(state.slot, RelativeEpoch::Current, &spec)
-        .unwrap();
-    state.balances[sender as usize] += 1_010_000_000_000;
+        // Run `process_attestation`
+        let _ = process_attestations(&mut state, &[attestation.unwrap()], &spec);
+    } else {
+        println!("Not Ok");
+    }
 
-    // Fuzz per_block_processing (if decoding was successful)
-    println!(
-        "Valid Transfer? {}",
-        process_transfers(&mut state, &[transfer], &spec).is_ok()
-    );
 }

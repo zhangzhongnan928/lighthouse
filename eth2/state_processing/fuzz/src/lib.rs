@@ -44,7 +44,7 @@ pub fn insert_eth1_data(state: &mut BeaconState<MinimalEthSpec>, deposit: &mut D
         deposit_count: 1,
         block_hash,
     };
-    state.latest_eth1_data = eth1_data;
+    state.eth1_data = eth1_data;
 }
 
 pub fn increase_state_epoch(
@@ -53,10 +53,13 @@ pub fn increase_state_epoch(
     spec: &ChainSpec,
 ) {
     state.slot = epoch.end_slot(MinimalEthSpec::slots_per_epoch());
-    state.previous_justified_epoch = epoch - 3;
-    state.current_justified_epoch = epoch - 2;
-    state.justification_bitfield = u64::max_value();
-    state.finalized_epoch = epoch - 3;
+
+    state.previous_justified_checkpoint.epoch = epoch - 3;
+    state.current_justified_checkpoint.epoch = epoch - 2;
+    state.justification_bits = BitVector::from_bytes(vec![0b0000_1111]).unwrap();
+
+    state.finalized_checkpoint.epoch = epoch - 3;
+
     state.build_all_caches(spec).unwrap();
 }
 

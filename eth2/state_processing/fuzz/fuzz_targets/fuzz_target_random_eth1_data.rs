@@ -23,6 +23,6 @@ fuzz_target!(|data: &[u8]| {
 
         // Run process_eth1_data
         let eth1_data = &eth1_data.unwrap();
-        let _ = process_eth1_data(&mut state, &eth1_data, &spec);
+        let _ = process_eth1_data(&mut state, &eth1_data);
     }
 });

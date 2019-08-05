@@ -5,7 +5,7 @@ mod beacon_state;
 
 pub use beacon_state::*;
 
-impl StoreItem for BeaconBlock {
+impl<T: EthSpec> StoreItem for BeaconBlock<T> {
     fn db_column() -> DBColumn {
         DBColumn::BeaconBlock
     }

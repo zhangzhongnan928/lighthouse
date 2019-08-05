@@ -2,13 +2,13 @@
 mod macros;
 
 pub mod common;
-pub mod get_genesis_state;
+pub mod genesis;
 pub mod per_block_processing;
 pub mod per_epoch_processing;
 pub mod per_slot_processing;
 
-pub use get_genesis_state::get_genesis_beacon_state;
-pub use per_block_processing::errors::{BlockInvalid, BlockProcessingError};
+pub use genesis::{initialize_beacon_state_from_eth1, is_valid_genesis_state};
 pub use per_block_processing::*;
+pub use per_block_processing::errors::*;
 pub use per_epoch_processing::{errors::EpochProcessingError, per_epoch_processing};
 pub use per_slot_processing::{per_slot_processing, Error as SlotProcessingError};

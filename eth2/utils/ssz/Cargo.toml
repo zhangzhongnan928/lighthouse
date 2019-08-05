@@ -1,21 +1,16 @@
 [package]
-name = "ssz"
-version = "0.1.0"
-authors = ["Paul Hauner <paul@paulhauner.com>"]
+name = "eth2_ssz"
+version = "0.1.2"
+authors = ["Paul Hauner <paul@sigmaprime.io>"]
 edition = "2018"
+description = "SimpleSerialize (SSZ) as used in Ethereum 2.0"
+license = "Apache-2.0"
 
-[[bench]]
-name = "benches"
-harness = false
+[lib]
+name = "ssz"
 
 [dev-dependencies]
-criterion = "0.2"
-ssz_derive = { path = "../ssz_derive" }
+eth2_ssz_derive = "0.1.0"
 
 [dependencies]
-bytes = "0.4.9"
 ethereum-types = "0.5"
-hashing = { path = "../hashing" }
-int_to_bytes = { path = "../int_to_bytes" }
-hex = "0.3"
-yaml-rust = "0.4"

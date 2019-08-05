@@ -21,6 +21,8 @@ fuzz_target!(|data: &[u8]| {
 
     // If valid attestation attempt to process it
     if attestation.is_ok() {
+        println!("Ok");
+
         let spec = MinimalEthSpec::default_spec();
         let mut state = from_minimal_state_file(&spec);
 
