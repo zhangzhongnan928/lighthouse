@@ -1,0 +1,40 @@
+
+[package]
+name = "eth2-libp2p-fuzz"
+version = "0.0.1"
+authors = ["Automatically generated"]
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies.eth2-libp2p]
+path = ".."
+[dependencies.libfuzzer-sys]
+git = "https://github.com/rust-fuzz/libfuzzer-sys.git"
+rev = "4a413199"
+
+[dependencies]
+libp2p =  { git = "https://github.com/SigP/rust-libp2p", rev = "f9ac7d542dc3e0b65c5cbbe4f45bfc3382ab2b4d" }
+tokio = "0.1.22"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "packet_of_bytes"
+path = "fuzz_targets/packet_of_bytes.rs"
+
+[[bin]]
+name = "single_byte_decoding"
+path = "fuzz_targets/single_byte_decoding.rs"
+
+[patch]
+[patch.crates-io]
+tree_hash = { path = "../../../eth2/utils/tree_hash" }
+tree_hash_derive = { path = "../../../eth2/utils/tree_hash_derive" }
+eth2_ssz = { path = "../../../eth2/utils/ssz" }
+eth2_ssz_derive = { path = "../../../eth2/utils/ssz_derive" }
+eth2_ssz_types = { path = "../../../eth2/utils/ssz_types" }
+eth2_hashing = { path = "../../../eth2/utils/eth2_hashing" }

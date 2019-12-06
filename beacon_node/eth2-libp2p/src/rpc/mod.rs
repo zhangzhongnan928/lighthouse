@@ -4,6 +4,7 @@
 //! direct peer-to-peer communication primarily for sending/receiving chain information for
 //! syncing.
 
+pub use codec::*;
 use futures::prelude::*;
 use handler::RPCHandler;
 use libp2p::core::ConnectedPoint;
@@ -15,7 +16,7 @@ use libp2p::{Multiaddr, PeerId};
 pub use methods::{
     ErrorMessage, RPCErrorResponse, RPCResponse, RequestId, ResponseTermination, StatusMessage,
 };
-pub use protocol::{RPCError, RPCProtocol, RPCRequest};
+pub use protocol::*;
 use slog::o;
 use std::marker::PhantomData;
 use std::time::Duration;

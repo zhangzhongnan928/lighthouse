@@ -1,8 +1,8 @@
 pub(crate) mod base;
 pub(crate) mod ssz;
 
-use self::base::{BaseInboundCodec, BaseOutboundCodec};
-use self::ssz::{SSZInboundCodec, SSZOutboundCodec};
+pub use self::base::{BaseInboundCodec, BaseOutboundCodec};
+pub use self::ssz::{SSZInboundCodec, SSZOutboundCodec};
 use crate::rpc::protocol::RPCError;
 use crate::rpc::{RPCErrorResponse, RPCRequest};
 use libp2p::bytes::BytesMut;

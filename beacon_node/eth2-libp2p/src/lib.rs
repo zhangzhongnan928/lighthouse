@@ -26,6 +26,6 @@ pub use libp2p::{
     gossipsub::{GossipsubConfig, GossipsubConfigBuilder},
     PeerId, Swarm,
 };
-pub use rpc::RPCEvent;
+pub use rpc::*;
 pub use service::Libp2pEvent;
 pub use service::Service;
