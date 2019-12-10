@@ -12,6 +12,7 @@ pub fn store_full_state<S: Store<E>, E: EthSpec>(
     let timer = metrics::start_timer(&metrics::BEACON_STATE_WRITE_TIMES);
 
     let bytes = StorageContainer::new(state).as_ssz_bytes();
+    println!("BeaconState is {} bytes", bytes.len());
     let result = store.put_bytes(DBColumn::BeaconState.into(), state_root.as_bytes(), &bytes);
 
     metrics::stop_timer(timer);
