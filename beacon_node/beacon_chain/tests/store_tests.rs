@@ -9,6 +9,7 @@ use beacon_chain::test_utils::{
 use beacon_chain::AttestationProcessingOutcome;
 use rand::Rng;
 use sloggers::{null::NullLoggerBuilder, Build};
+use ssz::Decode;
 use std::sync::Arc;
 use store::{DiskStore, Store};
 use tempfile::{tempdir, TempDir};
@@ -391,6 +392,21 @@ fn check_chain_dump(harness: &TestHarness, expected_len: u64) {
                 .slot,
             checkpoint.beacon_state.slot
         );
+    }
+
+    // Check that the beacon block bytes optimisation is consistent.
+    for checkpoint in &chain_dump {
+        let (block_slot, block_bytes) = harness
+            .chain
+            .store
+            .get_beacon_block_bytes(&checkpoint.beacon_block_root)
+            .expect("no DB error")
+            .expect("beacon block bytes exist");
+        assert_eq!(checkpoint.beacon_block.slot, block_slot);
+
+        let loaded_block: BeaconBlock<E> =
+            BeaconBlock::from_ssz_bytes(&block_bytes).expect("valid block bytes");
+        assert_eq!(loaded_block, checkpoint.beacon_block);
     }
 
     // Check the forwards block roots iterator against the chain dump

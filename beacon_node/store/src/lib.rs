@@ -27,6 +27,7 @@ mod partial_beacon_state;
 pub mod iter;
 pub mod migrate;
 
+use ssz::Decode;
 use std::sync::Arc;
 
 pub use self::block_root_tree::{BlockRootTree, SszBlockRootTree};
@@ -102,6 +103,32 @@ pub trait Store<E: EthSpec>: Sync + Send + Sized + 'static {
         slot: Slot,
     ) -> Result<Option<(Hash256, BeaconBlock<E>)>, Error> {
         block_at_slot::get_block_at_preceeding_slot::<_, E>(self, slot, start_block_root)
+    }
+
+    /// Load the bytes of a block without deserializing them into a `BeaconBlock`.
+    ///
+    /// Returns a tuple of the block's slot (partially deserialized), and the bytes of the block.
+    fn get_beacon_block_bytes(
+        &self,
+        block_root: &Hash256,
+    ) -> Result<Option<(Slot, Vec<u8>)>, Error> {
+        match self.get_bytes(DBColumn::BeaconBlock.into(), block_root.as_bytes())? {
+            Some(block_bytes) => {
+                let slot_len = <Slot as ssz::Decode>::ssz_fixed_len();
+                if block_bytes.len() >= slot_len {
+                    let slot = Slot::from_ssz_bytes(&block_bytes[..slot_len])?;
+
+                    Ok(Some((slot, block_bytes)))
+                } else {
+                    Err(ssz::DecodeError::InvalidByteLength {
+                        len: block_bytes.len(),
+                        expected: slot_len,
+                    }
+                    .into())
+                }
+            }
+            None => Ok(None),
+        }
     }
 
     /// (Optionally) Move all data before the frozen slot to the freezer database.

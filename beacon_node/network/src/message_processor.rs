@@ -281,11 +281,11 @@ impl<T: BeaconChainTypes> MessageProcessor<T> {
     ) {
         let mut send_block_count = 0;
         for root in request.block_roots.iter() {
-            if let Ok(Some(block)) = self.chain.store.get::<BeaconBlock<T::EthSpec>>(root) {
+            if let Ok(Some((_, block))) = self.chain.store.get_beacon_block_bytes(root) {
                 self.network.send_rpc_response(
                     peer_id.clone(),
                     request_id,
-                    RPCResponse::BlocksByRoot(block.as_ssz_bytes()),
+                    RPCResponse::BlocksByRoot(block),
                 );
                 send_block_count += 1;
             } else {
@@ -361,17 +361,17 @@ impl<T: BeaconChainTypes> MessageProcessor<T> {
 
         let mut blocks_sent = 0;
         for root in block_roots {
-            if let Ok(Some(block)) = self.chain.store.get::<BeaconBlock<T::EthSpec>>(&root) {
+            if let Ok(Some((block_slot, block))) = self.chain.store.get_beacon_block_bytes(&root) {
                 // Due to skip slots, blocks could be out of the range, we ensure they are in the
                 // range before sending
-                if block.slot >= req.start_slot
-                    && block.slot < req.start_slot + req.count * req.step
+                if block_slot >= req.start_slot
+                    && block_slot < req.start_slot + req.count * req.step
                 {
                     blocks_sent += 1;
                     self.network.send_rpc_response(
                         peer_id.clone(),
                         request_id,
-                        RPCResponse::BlocksByRange(block.as_ssz_bytes()),
+                        RPCResponse::BlocksByRange(block),
                     );
                 }
             } else {
