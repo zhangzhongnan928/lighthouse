@@ -1865,7 +1865,7 @@ dependencies = [
 [[package]]
 name = "leveldb"
 version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/sigp/leveldb.git?rev=aarch64#7c981fe9ab1c66c1cf4a8ebd273c586f2b4c0f0f"
 dependencies = [
  "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "leveldb-sys 2.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3965,7 +3965,7 @@ dependencies = [
  "eth2_ssz_derive 0.1.0",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "leveldb 0.8.4 (git+https://github.com/sigp/leveldb.git?rev=aarch64)",
  "lighthouse_metrics 0.1.0",
  "parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -5304,7 +5304,7 @@ dependencies = [
 "checksum language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a91d884b6667cd606bb5a69aa0c99ba811a115fc68915e7056ec08a46e93199a"
 "checksum lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 "checksum lazycell 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b294d6fa9ee409a054354afc4352b0b9ef7ca222c69b8812cbea9e7d2bf3783f"
-"checksum leveldb 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8438a36a31c982ac399c4477d7e3c62cc7a6bf91bb6f42837b7e1033359fcbad"
+"checksum leveldb 0.8.4 (git+https://github.com/sigp/leveldb.git?rev=aarch64)" = "<none>"
 "checksum leveldb-sys 2.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "71f46429bb70612c3e939aaeed27ffd31a24a773d21728a1a426e4089d6778d2"
 "checksum libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)" = "d515b1f41455adea1313a4a2ac8a8a477634fbae63cc6100e3aebb207ce61558"
 "checksum libflate 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)" = "d9135df43b1f5d0e333385cb6e7897ecd1a43d7d11b91ac003f4d2c2d2401fdd"
