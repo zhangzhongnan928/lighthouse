@@ -2,7 +2,9 @@ use crate::eth1_chain::CachingEth1Backend;
 use crate::events::NullEventHandler;
 use crate::head_tracker::HeadTracker;
 use crate::persisted_beacon_chain::{PersistedBeaconChain, BEACON_CHAIN_DB_KEY};
+use crate::shuffling_cache::ShufflingCache;
 use crate::timeout_rw_lock::TimeoutRwLock;
+use crate::validator_pubkey_cache::ValidatorPubkeyCache;
 use crate::{
     BeaconChain, BeaconChainTypes, CheckPoint, Eth1Chain, Eth1ChainBackend, EventHandler,
     ForkChoice,
@@ -16,7 +18,9 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 use store::Store;
-use types::{BeaconBlock, BeaconState, ChainSpec, EthSpec, Hash256, Slot};
+use types::{
+    BeaconBlock, BeaconState, ChainSpec, EthSpec, Hash256, Signature, SignedBeaconBlock, Slot,
+};
 
 /// An empty struct used to "witness" all the `BeaconChainTypes` traits. It has no user-facing
 /// functionality and only exists to satisfy the type system.
@@ -205,14 +209,13 @@ where
             .clone()
             .ok_or_else(|| "genesis_state requires a store")?;
 
-        let mut beacon_block = genesis_block(&beacon_state, &self.spec);
+        let beacon_block = genesis_block(&mut beacon_state, &self.spec)?;
 
         beacon_state
             .build_all_caches(&self.spec)
             .map_err(|e| format!("Failed to build genesis state caches: {:?}", e))?;
 
-        let beacon_state_root = beacon_state.canonical_root();
-        beacon_block.state_root = beacon_state_root;
+        let beacon_state_root = beacon_block.message.state_root;
         let beacon_block_root = beacon_block.canonical_root();
 
         self.genesis_block_root = Some(beacon_block_root);
@@ -303,9 +306,14 @@ where
             .build_all_caches(&self.spec)
             .map_err(|e| format!("Failed to build state caches: {:?}", e))?;
 
-        if canonical_head.beacon_block.state_root != canonical_head.beacon_state_root {
+        if canonical_head.beacon_block.state_root() != canonical_head.beacon_state_root {
             return Err("beacon_block.state_root != beacon_state".to_string());
         }
+
+        let validator_pubkey_cache = TimeoutRwLock::new(
+            ValidatorPubkeyCache::new(&canonical_head.beacon_state)
+                .map_err(|e| format!("Unable to init validator pubkey cache: {:?}", e))?,
+        );
 
         let beacon_chain = BeaconChain {
             spec: self.spec,
@@ -333,6 +341,8 @@ where
                 .event_handler
                 .ok_or_else(|| "Cannot build without an event handler".to_string())?,
             head_tracker: self.head_tracker.unwrap_or_default(),
+            shuffling_cache: TimeoutRwLock::new(ShufflingCache::new()),
+            validator_pubkey_cache,
             log: log.clone(),
         };
 
@@ -345,7 +355,7 @@ where
             "Beacon chain initialized";
             "head_state" => format!("{}", head.beacon_state_root),
             "head_block" => format!("{}", head.beacon_block_root),
-            "head_slot" => format!("{}", head.beacon_block.slot),
+            "head_slot" => format!("{}", head.beacon_block.slot()),
         );
 
         Ok(beacon_chain)
@@ -382,7 +392,8 @@ where
                 .ok_or_else(|| "fork_choice_backend requires a genesis_block_root")?;
 
             let backend = ProtoArrayForkChoice::new(
-                finalized_checkpoint.beacon_block.slot,
+                finalized_checkpoint.beacon_block.message.slot,
+                finalized_checkpoint.beacon_block.message.state_root,
                 // Note: here we set the `justified_epoch` to be the same as the epoch of the
                 // finalized checkpoint. Whilst this finalized checkpoint may actually point to
                 // a _later_ justified checkpoint, that checkpoint won't yet exist in the fork
@@ -512,12 +523,20 @@ where
     }
 }
 
-fn genesis_block<T: EthSpec>(genesis_state: &BeaconState<T>, spec: &ChainSpec) -> BeaconBlock<T> {
-    let mut genesis_block = BeaconBlock::empty(&spec);
-
-    genesis_block.state_root = genesis_state.canonical_root();
-
-    genesis_block
+fn genesis_block<T: EthSpec>(
+    genesis_state: &mut BeaconState<T>,
+    spec: &ChainSpec,
+) -> Result<SignedBeaconBlock<T>, String> {
+    let mut genesis_block = SignedBeaconBlock {
+        message: BeaconBlock::empty(&spec),
+        // Empty signature, which should NEVER be read. This isn't to-spec, but makes the genesis
+        // block consistent with every other block.
+        signature: Signature::empty_signature(),
+    };
+    genesis_block.message.state_root = genesis_state
+        .update_tree_hash_cache()
+        .map_err(|e| format!("Error hashing genesis state: {:?}", e))?;
+    Ok(genesis_block)
 }
 
 #[cfg(test)]
@@ -581,14 +600,14 @@ mod test {
             "should have the correct genesis time"
         );
         assert_eq!(
-            block.state_root,
+            block.state_root(),
             state.canonical_root(),
             "block should have correct state root"
         );
         assert_eq!(
             chain
                 .store
-                .get::<BeaconBlock<_>>(&Hash256::zero())
+                .get_block(&Hash256::zero())
                 .expect("should read db")
                 .expect("should find genesis block"),
             block,
