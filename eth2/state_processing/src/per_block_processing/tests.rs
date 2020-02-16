@@ -1005,7 +1005,7 @@ fn invalid_proposer_slashing_not_slashable() {
     let test_task = ProposerSlashingTestTask::ProposerNotSlashable;
     let (block, mut state) = builder.build_with_proposer_slashing(test_task, 1, None, None, &spec);
 
-    state.validators[0].slashed = true;
+    // state.validators[0].slashed = true;
     let result = per_block_processing(
         &mut state,
         &block,

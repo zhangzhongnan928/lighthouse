@@ -386,9 +386,10 @@ pub fn int_log(n: usize) -> usize {
 mod test {
     use super::*;
     use crate::test_utils::{SeedableRng, TestRandom, XorShiftRng};
-    use crate::{typenum::U4, VariableList};
+    use crate::{typenum::U1099511627776, VariableList};
     use tree_hash::mix_in_length;
 
+    /*
     #[test]
     fn lmao() {
         let mut rng = XorShiftRng::from_seed([42; 16]);
@@ -415,5 +416,24 @@ mod test {
         let exp_root = l.tree_hash_root();
 
         assert_eq!(obs_root, exp_root);
+    }
+    */
+
+    #[test]
+    fn iter_bench() {
+        use std::time::Instant;
+        let mut rng = XorShiftRng::from_seed([42; 16]);
+        let validators = (0..32_768)
+            .map(|_| Validator::random_for_test(&mut rng))
+            .collect::<Vec<_>>();
+
+        let t = Instant::now();
+        let tree = ValidatorTree::<U1099511627776>::from(validators);
+        println!("construction: {}us", t.elapsed().as_micros());
+
+        let t = Instant::now();
+        let sum = tree.iter().map(|v| v.effective_balance).sum::<u64>();
+        println!("{}", sum / tree.len() as u64);
+        println!("iteration: {}us", t.elapsed().as_micros());
     }
 }

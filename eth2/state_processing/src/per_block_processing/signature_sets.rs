@@ -255,7 +255,7 @@ pub fn validator_pubkey<'a, T: EthSpec>(
         .pubkey;
 
     if let Some(pubkey) = pubkey_bytes.decompressed() {
-        Ok(Cow::Borrowed(&pubkey.as_raw().point))
+        Ok(Cow::Owned(pubkey.as_raw().point.clone()))
     } else {
         pubkey_bytes
             .try_into()

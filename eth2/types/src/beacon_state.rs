@@ -944,9 +944,8 @@ impl<T: EthSpec> BeaconState<T> {
     /// decompressed.
     ///
     /// Does not check the validity of already decompressed keys.
-    pub fn decompress_validator_pubkeys(&mut self) -> Result<(), Error> {
-        /* FIXME(sproul)
-        self.validators.iter_mut().try_for_each(|validator| {
+    pub fn decompress_validator_pubkeys(&self) -> Result<(), Error> {
+        self.validators.iter().try_for_each(|validator| {
             if validator.pubkey.decompressed().is_none() {
                 validator
                     .pubkey
@@ -956,8 +955,6 @@ impl<T: EthSpec> BeaconState<T> {
                 Ok(())
             }
         })
-        */
-        Ok(())
     }
 
     /// Clone the state whilst preserving only the selected caches.

@@ -57,7 +57,7 @@ fn test_beacon_proposer_index<T: EthSpec>() {
     // Test with two validators per slot, first validator has zero balance.
     let mut state = build_state(T::slots_per_epoch() as usize * 2);
     let slot0_candidate0 = ith_candidate(&state, Slot::new(0), 0);
-    state.validators[slot0_candidate0].effective_balance = 0;
+    // state.validators[slot0_candidate0].effective_balance = 0;
     test(&state, Slot::new(0), 1);
     for i in 1..T::slots_per_epoch() {
         test(&state, Slot::from(i), 0);

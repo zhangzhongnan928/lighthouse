@@ -82,10 +82,18 @@ macro_rules! bytes_struct {
                  potentially not a valid "]
         #[doc = $small_name]
         #[doc = " (e.g., from the deposit contract)."]
-        #[derive(Clone)]
         pub struct $name {
             bytes: [u8; $byte_size],
-            decompressed: Option<$type>
+            decompressed: parking_lot::RwLock<Option<$type>>
+        }
+
+        impl Clone for $name {
+            fn clone(&self) -> Self {
+                Self {
+                    bytes: self.bytes,
+                    decompressed: parking_lot::RwLock::new(self.decompressed())
+                }
+            }
         }
     };
     ($name: ident, $type: ty, $byte_size: expr, $small_name: expr) => {
@@ -96,14 +104,14 @@ macro_rules! bytes_struct {
             pub fn from_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
                 Ok(Self {
                     bytes: Self::get_bytes(bytes)?,
-                    decompressed: None
+                    decompressed: parking_lot::RwLock::new(None)
                 })
             }
 
             pub fn empty() -> Self {
                 Self {
                     bytes: [0; $byte_size],
-                    decompressed: None
+                    decompressed: parking_lot::RwLock::new(None)
                 }
             }
 
@@ -124,13 +132,13 @@ macro_rules! bytes_struct {
                 }
             }
 
-            pub fn decompress(&mut self) -> Result<(), ssz::DecodeError> {
-                self.decompressed = Some(<&Self as std::convert::TryInto<$type>>::try_into(self)?);
+            pub fn decompress(&self) -> Result<(), ssz::DecodeError> {
+                *self.decompressed.write() = Some(<&Self as std::convert::TryInto<$type>>::try_into(self)?);
                 Ok(())
             }
 
-            pub fn decompressed(&self) -> &Option<$type> {
-                &self.decompressed
+            pub fn decompressed(&self) -> Option<$type> {
+                self.decompressed.read().as_ref().cloned()
             }
         }
 

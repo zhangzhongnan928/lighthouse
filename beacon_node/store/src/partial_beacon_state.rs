@@ -69,6 +69,7 @@ where
 impl<T: EthSpec> PartialBeaconState<T> {
     /// Convert a `BeaconState` to a `PartialBeaconState`, while dropping the optional fields.
     pub fn from_state_forgetful(s: &BeaconState<T>) -> Self {
+        let validators: Vec<Validator> = s.validators.clone().into();
         // TODO: could use references/Cow for fields to avoid cloning
         PartialBeaconState {
             genesis_time: s.genesis_time,
@@ -87,7 +88,8 @@ impl<T: EthSpec> PartialBeaconState<T> {
             eth1_deposit_index: s.eth1_deposit_index,
 
             // Validator registry
-            validators: s.validators.clone(),
+            // FIXME(sproul)
+            validators: VariableList::from(validators),
             balances: s.balances.clone(),
 
             // Shuffling
@@ -179,6 +181,7 @@ impl<E: EthSpec> TryInto<BeaconState<E>> for PartialBeaconState<E> {
             x.ok_or(Error::PartialBeaconStateError)
         }
 
+        let validators: Vec<Validator> = self.validators.clone().into();
         Ok(BeaconState {
             genesis_time: self.genesis_time,
             slot: self.slot,
@@ -195,8 +198,8 @@ impl<E: EthSpec> TryInto<BeaconState<E>> for PartialBeaconState<E> {
             eth1_data_votes: self.eth1_data_votes,
             eth1_deposit_index: self.eth1_deposit_index,
 
-            // Validator registry
-            validators: self.validators,
+            // Validator registry FIXME(sproul)
+            validators: ValidatorTree::from(validators),
             balances: self.balances,
 
             // Shuffling
