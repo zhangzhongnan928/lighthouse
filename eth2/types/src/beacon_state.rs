@@ -17,6 +17,7 @@ use tree_hash::TreeHash;
 use tree_hash_derive::TreeHash;
 
 pub use self::committee_cache::CommitteeCache;
+pub use self::validator_tree::ValidatorTree;
 pub use clone_config::CloneConfig;
 pub use eth_spec::*;
 pub use tree_hash_cache::BeaconTreeHashCache;
@@ -28,6 +29,7 @@ mod exit_cache;
 mod pubkey_cache;
 mod tests;
 mod tree_hash_cache;
+mod validator_tree;
 
 pub const CACHED_EPOCHS: usize = 3;
 const MAX_RANDOM_BYTE: u64 = (1 << 8) - 1;
@@ -127,8 +129,13 @@ where
     pub eth1_deposit_index: u64,
 
     // Registry
-    #[compare_fields(as_slice)]
-    pub validators: VariableList<Validator, T::ValidatorRegistryLimit>,
+    // FIXME: SSZ implementation for ValidatorTree
+    #[serde(skip_serializing, skip_deserializing)]
+    #[ssz(skip_serializing)]
+    #[ssz(skip_deserializing)]
+    #[tree_hash(skip_hashing)]
+    #[test_random(default)]
+    pub validators: ValidatorTree<T::ValidatorRegistryLimit>,
     #[compare_fields(as_slice)]
     pub balances: VariableList<u64, T::ValidatorRegistryLimit>,
 
@@ -205,8 +212,8 @@ impl<T: EthSpec> BeaconState<T> {
             eth1_deposit_index: 0,
 
             // Validator registry
-            validators: VariableList::empty(), // Set later.
-            balances: VariableList::empty(),   // Set later.
+            validators: ValidatorTree::default(), // Set later.
+            balances: VariableList::empty(),      // Set later.
 
             // Randomness
             randao_mixes: FixedVector::from_elem(Hash256::zero()),

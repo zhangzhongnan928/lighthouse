@@ -37,6 +37,8 @@ rand_xorshift = "0.2.0"
 cached_tree_hash = { path = "../utils/cached_tree_hash" }
 serde_yaml = "0.8.11"
 tempfile = "3.1.0"
+parking_lot = "0.9"
+itertools = "0.8"
 
 [dev-dependencies]
 env_logger = "0.7.1"

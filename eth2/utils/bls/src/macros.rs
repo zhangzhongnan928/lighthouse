@@ -135,8 +135,8 @@ macro_rules! bytes_struct {
         }
 
         impl std::fmt::Debug for $name {
-            fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                self.bytes[..].fmt(formatter)
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                write!(f, "{}", serde_hex::encode(&self.bytes[..]))
             }
         }
 
