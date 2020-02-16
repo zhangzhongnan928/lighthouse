@@ -7,13 +7,28 @@ use std::ops::Index;
 use std::sync::Arc;
 use tree_hash::TreeHash;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug)]
 pub struct ValidatorLeaf {
     hash: RwLock<Option<Hash256>>,
     value: Validator,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+impl Clone for ValidatorLeaf {
+    fn clone(&self) -> Self {
+        Self {
+            hash: RwLock::new(self.hash.read().as_ref().cloned()),
+            value: self.value.clone(),
+        }
+    }
+}
+
+impl PartialEq for ValidatorLeaf {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+#[derive(Debug)]
 pub enum ValidatorTreeNode {
     Leaf(ValidatorLeaf),
     Node {
@@ -21,15 +36,51 @@ pub enum ValidatorTreeNode {
         left: Arc<ValidatorTreeNode>,
         right: Arc<ValidatorTreeNode>,
     },
-    Zero(u64),
+    Zero(usize),
+}
+
+impl Clone for ValidatorTreeNode {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Node { hash, left, right } => Self::Node {
+                hash: RwLock::new(hash.read().as_ref().cloned()),
+                left: left.clone(),
+                right: right.clone(),
+            },
+            Self::Leaf(leaf) => Self::Leaf(leaf.clone()),
+            Self::Zero(depth) => Self::Zero(*depth),
+        }
+    }
+}
+
+impl PartialEq for ValidatorTreeNode {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Leaf(l1), Self::Leaf(l2)) => l1 == l2,
+            (
+                Self::Node {
+                    left: l1,
+                    right: r1,
+                    ..
+                },
+                Self::Node {
+                    left: l2,
+                    right: r2,
+                    ..
+                },
+            ) => l1 == l2 && r1 == r2,
+            (Self::Zero(d1), Self::Zero(d2)) => d1 == d2,
+            _ => false,
+        }
+    }
 }
 
 /// Top-level validator tree.
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ValidatorTree<N: Unsigned> {
     tree: Arc<ValidatorTreeNode>,
     length: usize,
-    depth: u64,
+    depth: usize,
     _phantom: PhantomData<N>,
 }
 
@@ -62,21 +113,21 @@ impl<N: Unsigned> From<Vec<Validator>> for ValidatorTree<N> {
 }
 
 impl<N: Unsigned> ValidatorTree<N> {
-    pub fn get(&self, index: u64) -> Option<&Validator> {
-        if index < self.len() as u64 {
+    pub fn get(&self, index: usize) -> Option<&Validator> {
+        if index < self.len() {
             self.tree.get(index, self.depth)
         } else {
             None
         }
     }
 
-    pub fn replace_validator(&mut self, index: u64, validator: Validator) -> Result<(), Error> {
+    pub fn replace(&mut self, index: usize, validator: Validator) -> Result<(), Error> {
         self.tree = self.tree.with_updated_leaf(index, validator, self.depth)?;
         Ok(())
     }
 
     pub fn push(&mut self, validator: Validator) -> Result<(), Error> {
-        let index = self.length as u64;
+        let index = self.length;
         self.tree = self.tree.with_updated_leaf(index, validator, self.depth)?;
         self.length += 1;
         Ok(())
@@ -85,12 +136,27 @@ impl<N: Unsigned> ValidatorTree<N> {
     pub fn len(&self) -> usize {
         self.length
     }
+
+    // FIXME(sproul): do something clever with a stack
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Validator> + 'a {
+        (0..self.length).filter_map(move |i| self.get(i))
+    }
 }
 
+/* FIXME(sproul): consider this
 impl<N: Unsigned> Index<u64> for ValidatorTree<N> {
     type Output = Validator;
 
-    fn index(&self, index: u64) -> &Self::Output {
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).expect("index out of bounds")
+    }
+}
+*/
+
+impl<N: Unsigned> Index<usize> for ValidatorTree<N> {
+    type Output = Validator;
+
+    fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("index out of bounds")
     }
 }
@@ -130,14 +196,14 @@ impl ValidatorLeaf {
 
 impl ValidatorTreeNode {
     pub fn node(left: Arc<Self>, right: Arc<Self>) -> Arc<Self> {
-        Arc::new(Self::Node {
+        Arc::new(ValidatorTreeNode::Node {
             hash: RwLock::new(None),
             left,
             right,
         })
     }
 
-    pub fn zero(depth: u64) -> Arc<Self> {
+    pub fn zero(depth: usize) -> Arc<Self> {
         Arc::new(Self::Zero(depth))
     }
 
@@ -145,7 +211,7 @@ impl ValidatorTreeNode {
         Arc::new(Self::Leaf(ValidatorLeaf::new(validator)))
     }
 
-    pub fn create(leaves: Vec<Arc<Self>>, depth: u64) -> Arc<Self> {
+    pub fn create(leaves: Vec<Arc<Self>>, depth: usize) -> Arc<Self> {
         if leaves.is_empty() {
             return Self::zero(depth);
         }
@@ -172,7 +238,7 @@ impl ValidatorTreeNode {
         current_layer.pop().expect("current layer not empty")
     }
 
-    pub fn get(&self, index: u64, depth: u64) -> Option<&Validator> {
+    pub fn get(&self, index: usize, depth: usize) -> Option<&Validator> {
         match self {
             Self::Leaf(ValidatorLeaf { value, .. }) if depth == 0 => Some(value),
             Self::Node { left, right, .. } if depth > 0 => {
@@ -192,9 +258,9 @@ impl ValidatorTreeNode {
 
     pub fn with_updated_leaf(
         &self,
-        index: u64,
+        index: usize,
         new_value: Validator,
-        depth: u64,
+        depth: usize,
     ) -> Result<Arc<Self>, Error> {
         // FIXME: check index less than 2^depth
         match self {
@@ -244,7 +310,7 @@ impl ValidatorTreeNode {
                     tree_hash
                 }
             }
-            Self::Zero(depth) => Hash256::from_slice(&ZERO_HASHES[*depth as usize]),
+            Self::Zero(depth) => Hash256::from_slice(&ZERO_HASHES[*depth]),
             Self::Node { hash, left, right } => {
                 let read_lock = hash.read();
                 let existing_hash = *read_lock;
@@ -268,10 +334,10 @@ impl ValidatorTreeNode {
 /// Compute ceil(log(n))
 ///
 /// Smallest number of bits d so that n <= 2^d
-pub fn int_log(n: usize) -> u64 {
+pub fn int_log(n: usize) -> usize {
     match n.checked_next_power_of_two() {
-        Some(x) => x.trailing_zeros(),
-        None => 8 * std::mem::size_of::<u64>(),
+        Some(x) => x.trailing_zeros() as usize,
+        None => 8 * std::mem::size_of::<usize>(),
     }
 }
 

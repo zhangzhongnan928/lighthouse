@@ -338,7 +338,7 @@ impl<T: EthSpec> BeaconState<T> {
     ///
     /// Spec v0.10.1
     pub fn get_active_validator_indices(&self, epoch: Epoch) -> Vec<usize> {
-        get_active_validator_indices(&self.validators, epoch)
+        get_active_validator_indices(self.validators.iter(), epoch)
     }
 
     /// Return the cached active validator indices at some epoch.
@@ -775,7 +775,7 @@ impl<T: EthSpec> BeaconState<T> {
         self.build_all_committee_caches(spec)?;
         self.update_pubkey_cache()?;
         self.build_tree_hash_cache()?;
-        self.exit_cache.build(&self.validators, spec)?;
+        self.exit_cache.build(self.validators.iter(), spec)?;
         self.decompress_validator_pubkeys()?;
 
         Ok(())
@@ -949,6 +949,7 @@ impl<T: EthSpec> BeaconState<T> {
     ///
     /// Does not check the validity of already decompressed keys.
     pub fn decompress_validator_pubkeys(&mut self) -> Result<(), Error> {
+        /* FIXME(sproul)
         self.validators.iter_mut().try_for_each(|validator| {
             if validator.pubkey.decompressed().is_none() {
                 validator
@@ -959,6 +960,8 @@ impl<T: EthSpec> BeaconState<T> {
                 Ok(())
             }
         })
+        */
+        Ok(())
     }
 
     /// Clone the state whilst preserving only the selected caches.

@@ -36,7 +36,7 @@ impl CommitteeCache {
             return Err(Error::ZeroSlotsPerEpoch);
         }
 
-        let active_validator_indices = get_active_validator_indices(&state.validators, epoch);
+        let active_validator_indices = get_active_validator_indices(state.validators.iter(), epoch);
 
         if active_validator_indices.is_empty() {
             return Err(Error::InsufficientValidators);
@@ -262,10 +262,15 @@ impl CommitteeCache {
 /// `epoch`.
 ///
 /// Spec v0.10.1
-pub fn get_active_validator_indices(validators: &[Validator], epoch: Epoch) -> Vec<usize> {
-    let mut active = Vec::with_capacity(validators.len());
+pub fn get_active_validator_indices<'a, I>(validators: I, epoch: Epoch) -> Vec<usize>
+where
+    I: Iterator<Item = &'a Validator>,
+{
+    // FIXME(sproul): could use exact size iterator
+    // let mut active = Vec::with_capacity(validators.len());
+    let mut active = vec![];
 
-    for (index, validator) in validators.iter().enumerate() {
+    for (index, validator) in validators.enumerate() {
         if validator.is_active_at(epoch) {
             active.push(index)
         }

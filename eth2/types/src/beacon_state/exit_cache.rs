@@ -11,9 +11,9 @@ pub struct ExitCache {
 
 impl ExitCache {
     /// Ensure the cache is built, and do nothing if it's already initialized.
-    pub fn build(
+    pub fn build<'a>(
         &mut self,
-        validators: &[Validator],
+        validators: impl Iterator<Item = &'a Validator>,
         spec: &ChainSpec,
     ) -> Result<(), BeaconStateError> {
         if self.initialized {
@@ -24,14 +24,13 @@ impl ExitCache {
     }
 
     /// Add all validators with a non-trivial exit epoch to the cache.
-    pub fn force_build(
+    pub fn force_build<'a>(
         &mut self,
-        validators: &[Validator],
+        validators: impl Iterator<Item = &'a Validator>,
         spec: &ChainSpec,
     ) -> Result<(), BeaconStateError> {
         self.initialized = true;
         validators
-            .iter()
             .filter(|validator| validator.exit_epoch != spec.far_future_epoch)
             .try_for_each(|validator| self.record_validator_exit(validator.exit_epoch))
     }

@@ -58,8 +58,11 @@ pub fn is_valid_genesis_state<T: EthSpec>(state: &BeaconState<T>, spec: &ChainSp
 ///
 /// Spec v0.10.1
 pub fn process_activations<T: EthSpec>(state: &mut BeaconState<T>, spec: &ChainSpec) {
-    for (index, validator) in state.validators.iter_mut().enumerate() {
+    let mut updated_validators = vec![];
+    for (index, validator) in state.validators.iter().enumerate() {
         let balance = state.balances[index];
+        // FIXME(sproul): could maybe optimize
+        let mut updated_validator = validator.clone();
         validator.effective_balance = std::cmp::min(
             balance - balance % spec.effective_balance_increment,
             spec.max_effective_balance,
@@ -68,5 +71,13 @@ pub fn process_activations<T: EthSpec>(state: &mut BeaconState<T>, spec: &ChainS
             validator.activation_eligibility_epoch = T::genesis_epoch();
             validator.activation_epoch = T::genesis_epoch();
         }
+        updated_validators.push((index, updated_validator));
+    }
+    for (index, validator) in updated_validators {
+        // FIXME(sproul): error propagation
+        state
+            .validators
+            .replace(index, validator)
+            .expect("no error");
     }
 }

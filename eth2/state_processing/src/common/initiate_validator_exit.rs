@@ -19,7 +19,7 @@ pub fn initiate_validator_exit<T: EthSpec>(
     }
 
     // Ensure the exit cache is built.
-    state.exit_cache.build(&state.validators, spec)?;
+    state.exit_cache.build(state.validators.iter(), spec)?;
 
     // Compute exit queue epoch
     let delayed_epoch = state.compute_activation_exit_epoch(state.current_epoch(), spec);
