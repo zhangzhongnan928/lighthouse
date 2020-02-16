@@ -34,9 +34,11 @@ pub fn initiate_validator_exit<T: EthSpec>(
     }
 
     state.exit_cache.record_validator_exit(exit_queue_epoch)?;
-    state.validators[index].exit_epoch = exit_queue_epoch;
-    state.validators[index].withdrawable_epoch =
-        exit_queue_epoch + spec.min_validator_withdrawability_delay;
+    let mut new_validator = state.validators[index].clone();
+    new_validator.exit_epoch = exit_queue_epoch;
+    new_validator.withdrawable_epoch = exit_queue_epoch + spec.min_validator_withdrawability_delay;
+    // FIXME(sproul): could optimise by returning the validator for further mutation
+    state.validators.replace(index, new_validator)?;
 
     Ok(())
 }

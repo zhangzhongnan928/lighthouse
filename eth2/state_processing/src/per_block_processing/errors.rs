@@ -1,5 +1,6 @@
 use super::signature_sets::Error as SignatureSetError;
 use merkle_proof::MerkleTreeError;
+use types::beacon_state::ValidatorTreeError;
 use types::*;
 
 /// The error returned from the `per_block_processing` function. Indicates that a block is either
@@ -48,6 +49,7 @@ pub enum BlockProcessingError {
     SignatureSetError(SignatureSetError),
     SszTypesError(ssz_types::Error),
     MerkleTreeError(MerkleTreeError),
+    ValidatorTreeError(ValidatorTreeError),
 }
 
 impl From<BeaconStateError> for BlockProcessingError {
@@ -65,6 +67,12 @@ impl From<SignatureSetError> for BlockProcessingError {
 impl From<ssz_types::Error> for BlockProcessingError {
     fn from(error: ssz_types::Error) -> Self {
         BlockProcessingError::SszTypesError(error)
+    }
+}
+
+impl From<ValidatorTreeError> for BlockProcessingError {
+    fn from(error: ValidatorTreeError) -> Self {
+        BlockProcessingError::ValidatorTreeError(error)
     }
 }
 

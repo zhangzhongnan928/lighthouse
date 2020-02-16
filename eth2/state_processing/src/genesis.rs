@@ -37,7 +37,7 @@ pub fn initialize_beacon_state_from_eth1<T: EthSpec>(
         process_deposit(&mut state, &deposit, spec, true)?;
     }
 
-    process_activations(&mut state, spec);
+    process_activations(&mut state, spec)?;
 
     // Now that we have our validators, initialize the caches (including the committees)
     state.build_all_caches(spec)?;
@@ -57,27 +57,29 @@ pub fn is_valid_genesis_state<T: EthSpec>(state: &BeaconState<T>, spec: &ChainSp
 /// Activate genesis validators, if their balance is acceptable.
 ///
 /// Spec v0.10.1
-pub fn process_activations<T: EthSpec>(state: &mut BeaconState<T>, spec: &ChainSpec) {
+pub fn process_activations<T: EthSpec>(
+    state: &mut BeaconState<T>,
+    spec: &ChainSpec,
+) -> Result<(), BlockProcessingError> {
     let mut updated_validators = vec![];
     for (index, validator) in state.validators.iter().enumerate() {
         let balance = state.balances[index];
         // FIXME(sproul): could maybe optimize
         let mut updated_validator = validator.clone();
-        validator.effective_balance = std::cmp::min(
+        updated_validator.effective_balance = std::cmp::min(
             balance - balance % spec.effective_balance_increment,
             spec.max_effective_balance,
         );
-        if validator.effective_balance == spec.max_effective_balance {
-            validator.activation_eligibility_epoch = T::genesis_epoch();
-            validator.activation_epoch = T::genesis_epoch();
+        if updated_validator.effective_balance == spec.max_effective_balance {
+            updated_validator.activation_eligibility_epoch = T::genesis_epoch();
+            updated_validator.activation_epoch = T::genesis_epoch();
         }
         updated_validators.push((index, updated_validator));
     }
+
     for (index, validator) in updated_validators {
-        // FIXME(sproul): error propagation
-        state
-            .validators
-            .replace(index, validator)
-            .expect("no error");
+        state.validators.replace(index, validator)?;
     }
+
+    Ok(())
 }

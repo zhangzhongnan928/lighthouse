@@ -148,17 +148,24 @@ pub fn process_final_updates<T: EthSpec>(
     }
 
     // Update effective balances with hysteresis (lag).
-    for (index, validator) in state.validators.iter_mut().enumerate() {
+    let mut updated_validators = vec![];
+    for (index, validator) in state.validators.iter().enumerate() {
         let balance = state.balances[index];
         let half_increment = spec.effective_balance_increment / 2;
         if balance < validator.effective_balance
             || validator.effective_balance + 3 * half_increment < balance
         {
-            validator.effective_balance = std::cmp::min(
+            let mut new_validator = validator.clone();
+            new_validator.effective_balance = std::cmp::min(
                 balance - balance % spec.effective_balance_increment,
                 spec.max_effective_balance,
             );
+            updated_validators.push((index, new_validator));
         }
+    }
+
+    for (index, validator) in updated_validators {
+        state.validators.replace(index, validator)?;
     }
 
     // Reset slashings

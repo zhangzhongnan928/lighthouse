@@ -17,7 +17,7 @@ use tree_hash::TreeHash;
 use tree_hash_derive::TreeHash;
 
 pub use self::committee_cache::CommitteeCache;
-pub use self::validator_tree::ValidatorTree;
+pub use self::validator_tree::{ValidatorTree, ValidatorTreeError};
 pub use clone_config::CloneConfig;
 pub use eth_spec::*;
 pub use tree_hash_cache::BeaconTreeHashCache;
@@ -72,6 +72,7 @@ pub enum Error {
     InvalidValidatorPubkey(ssz::DecodeError),
     ValidatorRegistryShrunk,
     TreeHashCacheInconsistent,
+    ValidatorTreeError(ValidatorTreeError),
 }
 
 /// Control whether an epoch-indexed field can be indexed at the next epoch or not.
@@ -129,11 +130,6 @@ where
     pub eth1_deposit_index: u64,
 
     // Registry
-    // FIXME: SSZ implementation for ValidatorTree
-    #[serde(skip_serializing, skip_deserializing)]
-    #[ssz(skip_serializing)]
-    #[ssz(skip_deserializing)]
-    #[tree_hash(skip_hashing)]
     #[test_random(default)]
     pub validators: ValidatorTree<T::ValidatorRegistryLimit>,
     #[compare_fields(as_slice)]
@@ -1052,5 +1048,11 @@ impl From<ssz_types::Error> for Error {
 impl From<cached_tree_hash::Error> for Error {
     fn from(e: cached_tree_hash::Error) -> Error {
         Error::CachedTreeHashError(e)
+    }
+}
+
+impl From<ValidatorTreeError> for Error {
+    fn from(e: ValidatorTreeError) -> Error {
+        Error::ValidatorTreeError(e)
     }
 }

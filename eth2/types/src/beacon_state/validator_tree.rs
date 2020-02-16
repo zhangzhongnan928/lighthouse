@@ -2,6 +2,7 @@ use crate::typenum::Unsigned;
 use crate::*;
 use eth2_hashing::{hash32_concat, ZERO_HASHES};
 use parking_lot::RwLock;
+use serde_derive::{Deserialize, Serialize};
 use std::marker::PhantomData;
 use std::ops::Index;
 use std::sync::Arc;
@@ -76,21 +77,23 @@ impl PartialEq for ValidatorTreeNode {
 }
 
 /// Top-level validator tree.
-#[derive(Debug, PartialEq, Clone)]
-pub struct ValidatorTree<N: Unsigned> {
+#[derive(Debug, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(from = "Vec<Validator>")]
+#[serde(into = "Vec<Validator>")]
+pub struct ValidatorTree<N: Unsigned + Clone> {
     tree: Arc<ValidatorTreeNode>,
     length: usize,
     depth: usize,
     _phantom: PhantomData<N>,
 }
 
-impl<N: Unsigned> Default for ValidatorTree<N> {
+impl<N: Unsigned + Clone> Default for ValidatorTree<N> {
     fn default() -> Self {
         Self::from(vec![])
     }
 }
 
-impl<N: Unsigned> From<Vec<Validator>> for ValidatorTree<N> {
+impl<N: Unsigned + Clone> From<Vec<Validator>> for ValidatorTree<N> {
     fn from(mut validators: Vec<Validator>) -> Self {
         validators.truncate(N::to_usize());
 
@@ -112,7 +115,13 @@ impl<N: Unsigned> From<Vec<Validator>> for ValidatorTree<N> {
     }
 }
 
-impl<N: Unsigned> ValidatorTree<N> {
+impl<N: Unsigned + Clone> Into<Vec<Validator>> for ValidatorTree<N> {
+    fn into(self) -> Vec<Validator> {
+        self.iter().cloned().collect()
+    }
+}
+
+impl<N: Unsigned + Clone> ValidatorTree<N> {
     pub fn get(&self, index: usize) -> Option<&Validator> {
         if index < self.len() {
             self.tree.get(index, self.depth)
@@ -121,12 +130,16 @@ impl<N: Unsigned> ValidatorTree<N> {
         }
     }
 
-    pub fn replace(&mut self, index: usize, validator: Validator) -> Result<(), Error> {
+    pub fn replace(
+        &mut self,
+        index: usize,
+        validator: Validator,
+    ) -> Result<(), ValidatorTreeError> {
         self.tree = self.tree.with_updated_leaf(index, validator, self.depth)?;
         Ok(())
     }
 
-    pub fn push(&mut self, validator: Validator) -> Result<(), Error> {
+    pub fn push(&mut self, validator: Validator) -> Result<(), ValidatorTreeError> {
         let index = self.length;
         self.tree = self.tree.with_updated_leaf(index, validator, self.depth)?;
         self.length += 1;
@@ -144,7 +157,7 @@ impl<N: Unsigned> ValidatorTree<N> {
 }
 
 /* FIXME(sproul): consider this
-impl<N: Unsigned> Index<u64> for ValidatorTree<N> {
+impl<N: Unsigned + Clone> Index<u64> for ValidatorTree<N> {
     type Output = Validator;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -153,7 +166,7 @@ impl<N: Unsigned> Index<u64> for ValidatorTree<N> {
 }
 */
 
-impl<N: Unsigned> Index<usize> for ValidatorTree<N> {
+impl<N: Unsigned + Clone> Index<usize> for ValidatorTree<N> {
     type Output = Validator;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -161,7 +174,7 @@ impl<N: Unsigned> Index<usize> for ValidatorTree<N> {
     }
 }
 
-impl<N: Unsigned> TreeHash for ValidatorTree<N> {
+impl<N: Unsigned + Clone> TreeHash for ValidatorTree<N> {
     fn tree_hash_type() -> tree_hash::TreeHashType {
         tree_hash::TreeHashType::List
     }
@@ -180,8 +193,36 @@ impl<N: Unsigned> TreeHash for ValidatorTree<N> {
     }
 }
 
-#[derive(Debug)]
-pub enum Error {
+impl<N: Unsigned + Clone> ssz::Encode for ValidatorTree<N> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+
+    fn ssz_bytes_len(&self) -> usize {
+        assert!(<Validator as ssz::Encode>::is_ssz_fixed_len());
+        <Validator as ssz::Encode>::ssz_fixed_len() * self.len()
+    }
+
+    fn ssz_append(&self, buf: &mut Vec<u8>) {
+        // FIXME: implement encode for Vec<&T> to save the clone, or do something better
+        let vec = self.iter().cloned().collect::<Vec<_>>();
+        vec.ssz_append(buf)
+    }
+}
+
+impl<N: Unsigned + Clone> ssz::Decode for ValidatorTree<N> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
+        let vec = <Vec<Validator>>::from_ssz_bytes(bytes)?;
+        Ok(Self::from(vec))
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum ValidatorTreeError {
     Oops,
 }
 
@@ -261,7 +302,7 @@ impl ValidatorTreeNode {
         index: usize,
         new_value: Validator,
         depth: usize,
-    ) -> Result<Arc<Self>, Error> {
+    ) -> Result<Arc<Self>, ValidatorTreeError> {
         // FIXME: check index less than 2^depth
         match self {
             Self::Leaf(_) if depth == 0 => Ok(Self::leaf(new_value)),
@@ -292,7 +333,7 @@ impl ValidatorTreeNode {
                         .with_updated_leaf(index, new_value, depth)
                 }
             }
-            _ => Err(Error::Oops),
+            _ => Err(ValidatorTreeError::Oops),
         }
     }
 

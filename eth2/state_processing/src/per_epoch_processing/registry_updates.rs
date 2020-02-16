@@ -33,9 +33,17 @@ pub fn process_registry_updates<T: EthSpec>(
                 Either::Right(index)
             }
         });
+
     for index in eligible_validators {
-        state.validators[index].activation_eligibility_epoch = current_epoch + 1;
+        state.validators.replace(
+            index,
+            Validator {
+                activation_eligibility_epoch: current_epoch + 1,
+                ..state.validators[index].clone()
+            },
+        )?;
     }
+
     for index in exiting_validators {
         initiate_validator_exit(state, index, spec)?;
     }
@@ -54,8 +62,13 @@ pub fn process_registry_updates<T: EthSpec>(
     let churn_limit = state.get_churn_limit(spec)? as usize;
     let delayed_activation_epoch = state.compute_activation_exit_epoch(current_epoch, spec);
     for index in activation_queue.into_iter().take(churn_limit) {
-        let validator = &mut state.validators[index];
-        validator.activation_epoch = delayed_activation_epoch;
+        state.validators.replace(
+            index,
+            Validator {
+                activation_epoch: delayed_activation_epoch,
+                ..state.validators[index].clone()
+            },
+        )?;
     }
 
     Ok(())

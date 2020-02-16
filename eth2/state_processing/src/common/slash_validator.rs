@@ -19,11 +19,15 @@ pub fn slash_validator<T: EthSpec>(
 
     initiate_validator_exit(state, slashed_index, spec)?;
 
-    state.validators[slashed_index].slashed = true;
-    state.validators[slashed_index].withdrawable_epoch = cmp::max(
+    let mut updated_validator = state.validators[slashed_index].clone();
+
+    updated_validator.slashed = true;
+    updated_validator.withdrawable_epoch = cmp::max(
         state.validators[slashed_index].withdrawable_epoch,
         epoch + Epoch::from(T::EpochsPerSlashingsVector::to_u64()),
     );
+    state.validators.replace(slashed_index, updated_validator)?;
+
     let validator_effective_balance = state.get_effective_balance(slashed_index, spec)?;
     state.set_slashings(
         epoch,
