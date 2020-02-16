@@ -772,7 +772,6 @@ impl<T: EthSpec> BeaconState<T> {
         self.update_pubkey_cache()?;
         self.build_tree_hash_cache()?;
         self.exit_cache.build(self.validators.iter(), spec)?;
-        self.decompress_validator_pubkeys()?;
 
         Ok(())
     }
@@ -857,7 +856,7 @@ impl<T: EthSpec> BeaconState<T> {
 
     /// Returns the cache for some `RelativeEpoch`. Returns an error if the cache has not been
     /// initialized.
-    fn committee_cache(&self, relative_epoch: RelativeEpoch) -> Result<&CommitteeCache, Error> {
+    pub fn committee_cache(&self, relative_epoch: RelativeEpoch) -> Result<&CommitteeCache, Error> {
         let cache = &self.committee_caches[Self::committee_cache_index(relative_epoch)];
 
         if cache.is_initialized_at(relative_epoch.into_epoch(self.current_epoch())) {
@@ -938,23 +937,6 @@ impl<T: EthSpec> BeaconState<T> {
     /// Completely drops the tree hash cache, replacing it with a new, empty cache.
     pub fn drop_tree_hash_cache(&mut self) {
         self.tree_hash_cache = None;
-    }
-
-    /// Iterate through all validators and decompress their public key, unless it has already been
-    /// decompressed.
-    ///
-    /// Does not check the validity of already decompressed keys.
-    pub fn decompress_validator_pubkeys(&self) -> Result<(), Error> {
-        self.validators.iter().try_for_each(|validator| {
-            if validator.pubkey.decompressed().is_none() {
-                validator
-                    .pubkey
-                    .decompress()
-                    .map_err(Error::InvalidValidatorPubkey)
-            } else {
-                Ok(())
-            }
-        })
     }
 
     /// Clone the state whilst preserving only the selected caches.

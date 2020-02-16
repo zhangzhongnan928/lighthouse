@@ -1,10 +1,13 @@
+pub use crate::beacon_chain::{
+    BEACON_CHAIN_DB_KEY, ETH1_CACHE_DB_KEY, FORK_CHOICE_DB_KEY, OP_POOL_DB_KEY,
+};
+pub use crate::persisted_beacon_chain::PersistedBeaconChain;
 use crate::{
     builder::{BeaconChainBuilder, Witness},
     eth1_chain::CachingEth1Backend,
     events::NullEventHandler,
     AttestationProcessingOutcome, BeaconChain, BeaconChainTypes, BlockProcessingOutcome,
 };
-use eth1::Config as Eth1Config;
 use genesis::interop_genesis_state;
 use rayon::prelude::*;
 use sloggers::{terminal::TerminalLoggerBuilder, types::Severity, Build};
@@ -21,7 +24,6 @@ use types::{
     Keypair, SecretKey, Signature, SignedBeaconBlock, SignedRoot, Slot,
 };
 
-pub use crate::persisted_beacon_chain::{PersistedBeaconChain, BEACON_CHAIN_DB_KEY};
 pub use types::test_utils::generate_deterministic_keypairs;
 
 // 4th September 2019
@@ -173,7 +175,7 @@ impl<E: EthSpec> BeaconChainHarness<DiskHarnessType<E>> {
             .custom_spec(spec)
             .store(store.clone())
             .store_migrator(<BlockingMigrator<_> as Migrate<_, E>>::new(store))
-            .resume_from_db(Eth1Config::default())
+            .resume_from_db()
             .expect("should resume beacon chain from db")
             .dummy_eth1_backend()
             .expect("should build dummy backend")
@@ -410,6 +412,7 @@ where
                                 let message = data.signing_root(domain);
 
                                 let mut agg_sig = AggregateSignature::new();
+
                                 agg_sig.add(&Signature::new(
                                     message.as_bytes(),
                                     self.get_sk(*validator_index),

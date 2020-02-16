@@ -82,18 +82,9 @@ macro_rules! bytes_struct {
                  potentially not a valid "]
         #[doc = $small_name]
         #[doc = " (e.g., from the deposit contract)."]
+        #[derive(Clone)]
         pub struct $name {
             bytes: [u8; $byte_size],
-            decompressed: parking_lot::RwLock<Option<$type>>
-        }
-
-        impl Clone for $name {
-            fn clone(&self) -> Self {
-                Self {
-                    bytes: self.bytes,
-                    decompressed: parking_lot::RwLock::new(self.decompressed())
-                }
-            }
         }
     };
     ($name: ident, $type: ty, $byte_size: expr, $small_name: expr) => {
@@ -104,14 +95,12 @@ macro_rules! bytes_struct {
             pub fn from_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
                 Ok(Self {
                     bytes: Self::get_bytes(bytes)?,
-                    decompressed: parking_lot::RwLock::new(None)
                 })
             }
 
             pub fn empty() -> Self {
                 Self {
                     bytes: [0; $byte_size],
-                    decompressed: parking_lot::RwLock::new(None)
                 }
             }
 
@@ -130,15 +119,6 @@ macro_rules! bytes_struct {
                     result[..].copy_from_slice(bytes);
                     Ok(result)
                 }
-            }
-
-            pub fn decompress(&self) -> Result<(), ssz::DecodeError> {
-                *self.decompressed.write() = Some(<&Self as std::convert::TryInto<$type>>::try_into(self)?);
-                Ok(())
-            }
-
-            pub fn decompressed(&self) -> Option<$type> {
-                self.decompressed.read().as_ref().cloned()
             }
         }
 
@@ -177,9 +157,64 @@ macro_rules! bytes_struct {
             }
         }
 
-        impl_ssz!($name, $byte_size, "$type");
+        impl ssz::Encode for $name {
+            fn is_ssz_fixed_len() -> bool {
+                true
+            }
 
-        impl_tree_hash!($name, $byte_size);
+            fn ssz_fixed_len() -> usize {
+                $byte_size
+            }
+
+            fn ssz_bytes_len(&self) -> usize {
+                $byte_size
+            }
+
+            fn ssz_append(&self, buf: &mut Vec<u8>) {
+                buf.extend_from_slice(&self.bytes)
+            }
+        }
+
+        impl ssz::Decode for $name {
+            fn is_ssz_fixed_len() -> bool {
+                true
+            }
+
+            fn ssz_fixed_len() -> usize {
+                $byte_size
+            }
+
+            fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
+                let len = bytes.len();
+                let expected = <Self as ssz::Decode>::ssz_fixed_len();
+
+                if len != expected {
+                    Err(ssz::DecodeError::InvalidByteLength { len, expected })
+                } else {
+                    Self::from_bytes(bytes)
+                }
+            }
+        }
+
+        impl tree_hash::TreeHash for $name {
+            fn tree_hash_type() -> tree_hash::TreeHashType {
+                tree_hash::TreeHashType::Vector
+            }
+
+            fn tree_hash_packed_encoding(&self) -> Vec<u8> {
+                unreachable!("Vector should never be packed.")
+            }
+
+            fn tree_hash_packing_factor() -> usize {
+                unreachable!("Vector should never be packed.")
+            }
+
+            fn tree_hash_root(&self) -> Vec<u8> {
+                let values_per_chunk = tree_hash::BYTES_PER_CHUNK;
+                let minimum_chunk_count = ($byte_size + values_per_chunk - 1) / values_per_chunk;
+                tree_hash::merkle_root(&self.bytes, minimum_chunk_count)
+            }
+        }
 
         impl serde::ser::Serialize for $name {
             /// Serde serialization is compliant the Ethereum YAML test format.
