@@ -150,9 +150,55 @@ impl<N: Unsigned + Clone> ValidatorTree<N> {
         self.length
     }
 
-    // FIXME(sproul): do something clever with a stack
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Validator> + 'a {
-        (0..self.length).filter_map(move |i| self.get(i))
+        Iter {
+            stack: vec![&self.tree],
+            index: 0,
+            full_depth: self.depth,
+        }
+    }
+}
+
+pub struct Iter<'a> {
+    stack: Vec<&'a ValidatorTreeNode>,
+    index: u64,
+    full_depth: usize,
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a Validator;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.stack.last() {
+            None | Some(ValidatorTreeNode::Zero(_)) => None,
+            Some(ValidatorTreeNode::Leaf(ValidatorLeaf { value, .. })) => {
+                let result = Some(value);
+
+                self.index += 1;
+
+                // Backtrack to the parent node of the next subtree
+                self.stack.pop();
+                for _ in 0..self.index.trailing_zeros() + 1 {
+                    self.stack.pop();
+                }
+
+                result
+            }
+            Some(ValidatorTreeNode::Node { left, right, .. }) => {
+                let depth = self.full_depth - self.stack.len();
+
+                // Go left
+                if (self.index >> depth) & 1 == 0 {
+                    self.stack.push(&left);
+                    self.next()
+                }
+                // Go right
+                else {
+                    self.stack.push(&right);
+                    self.next()
+                }
+            }
+        }
     }
 }
 
@@ -421,6 +467,7 @@ mod test {
 
     #[test]
     fn iter_bench() {
+        use crate::typenum;
         use std::time::Instant;
         let mut rng = XorShiftRng::from_seed([42; 16]);
         let validators = (0..32_768)
@@ -428,12 +475,24 @@ mod test {
             .collect::<Vec<_>>();
 
         let t = Instant::now();
-        let tree = ValidatorTree::<U1099511627776>::from(validators);
+        let tree = ValidatorTree::<typenum::U1099511627776>::from(validators.clone());
         println!("construction: {}us", t.elapsed().as_micros());
+
+        let extracted: Vec<Validator> = tree.iter().cloned().collect();
+        // println!("{:#?}", extracted);
+        // println!("{:#?}", validators);
+        assert_eq!(extracted.len(), validators.len());
+        assert_eq!(extracted, validators);
 
         let t = Instant::now();
         let sum = tree.iter().map(|v| v.effective_balance).sum::<u64>();
         println!("{}", sum / tree.len() as u64);
         println!("iteration: {}us", t.elapsed().as_micros());
+
+        // For comparison
+        let t = Instant::now();
+        let sum = validators.iter().map(|v| v.effective_balance).sum::<u64>();
+        println!("{}", sum / tree.len() as u64);
+        println!("vec iteration: {}us", t.elapsed().as_micros());
     }
 }
