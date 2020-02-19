@@ -1,6 +1,21 @@
 use super::*;
 use core::num::NonZeroUsize;
 use ethereum_types::{H256, U128, U256};
+use std::borrow::Cow;
+
+impl<'a, T: Decode + Clone> Decode for Cow<'a, T> {
+    fn is_ssz_fixed_len() -> bool {
+        T::is_ssz_fixed_len()
+    }
+
+    fn ssz_fixed_len() -> usize {
+        T::ssz_fixed_len()
+    }
+
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, DecodeError> {
+        Ok(Cow::Owned(T::from_ssz_bytes(bytes)?))
+    }
+}
 
 macro_rules! impl_decodable_for_uint {
     ($type: ident, $bit_size: expr) => {

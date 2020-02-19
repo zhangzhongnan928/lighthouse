@@ -1,8 +1,9 @@
 use crate::*;
 use ssz::{Decode, DecodeError, Encode};
 use ssz_derive::{Decode, Encode};
+use std::borrow::Cow;
 use std::convert::TryInto;
-use types::beacon_state::{CloneConfig, CommitteeCache, CACHED_EPOCHS};
+use types::beacon_state::{CommitteeCache, CACHED_EPOCHS};
 
 pub fn store_full_state<S: Store<E>, E: EthSpec>(
     store: &S,
@@ -49,26 +50,26 @@ pub fn get_full_state<S: Store<E>, E: EthSpec>(
 /// A container for storing `BeaconState` components.
 // TODO: would be more space efficient with the caches stored separately and referenced by hash
 #[derive(Encode, Decode)]
-pub struct StorageContainer<T: EthSpec> {
-    state: BeaconState<T>,
+pub struct StorageContainer<'a, T: EthSpec> {
+    state: Cow<'a, BeaconState<T>>,
     committee_caches: Vec<CommitteeCache>,
 }
 
-impl<T: EthSpec> StorageContainer<T> {
+impl<'a, T: EthSpec> StorageContainer<'a, T> {
     /// Create a new instance for storing a `BeaconState`.
-    pub fn new(state: &BeaconState<T>) -> Self {
+    pub fn new(state: &'a BeaconState<T>) -> Self {
         Self {
-            state: state.clone_with(CloneConfig::none()),
+            state: Cow::Borrowed(state),
             committee_caches: state.committee_caches.to_vec(),
         }
     }
 }
 
-impl<T: EthSpec> TryInto<BeaconState<T>> for StorageContainer<T> {
+impl<'a, T: EthSpec> TryInto<BeaconState<T>> for StorageContainer<'a, T> {
     type Error = Error;
 
     fn try_into(mut self) -> Result<BeaconState<T>, Error> {
-        let mut state = self.state;
+        let mut state = self.state.into_owned();
 
         for i in (0..CACHED_EPOCHS).rev() {
             if i >= self.committee_caches.len() {

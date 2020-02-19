@@ -1,6 +1,25 @@
 use super::*;
 use core::num::NonZeroUsize;
 use ethereum_types::{H256, U128, U256};
+use std::borrow::Cow;
+
+impl<'a, T: Encode + Clone> Encode for Cow<'a, T> {
+    fn is_ssz_fixed_len() -> bool {
+        T::is_ssz_fixed_len()
+    }
+
+    fn ssz_fixed_len() -> usize {
+        T::ssz_fixed_len()
+    }
+
+    fn ssz_bytes_len(&self) -> usize {
+        self.as_ref().ssz_bytes_len()
+    }
+
+    fn ssz_append(&self, buf: &mut Vec<u8>) {
+        self.as_ref().ssz_append(buf);
+    }
+}
 
 macro_rules! impl_encodable_for_uint {
     ($type: ident, $bit_size: expr) => {
