@@ -250,9 +250,8 @@ impl<N: Unsigned + Clone> ssz::Encode for ValidatorTree<N> {
     }
 
     fn ssz_append(&self, buf: &mut Vec<u8>) {
-        // FIXME: implement encode for Vec<&T> to save the clone, or do something better
-        let vec = self.iter().cloned().collect::<Vec<_>>();
-        vec.ssz_append(buf)
+        buf.reserve(self.ssz_bytes_len());
+        self.iter().for_each(|validator| validator.ssz_append(buf));
     }
 }
 
