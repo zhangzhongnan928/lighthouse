@@ -1858,7 +1858,7 @@ dependencies = [
 [[package]]
 name = "leveldb"
 version = "0.8.4"
-source = "git+https://github.com/sigp/leveldb.git?rev=aarch64#7c981fe9ab1c66c1cf4a8ebd273c586f2b4c0f0f"
+source = "git+https://github.com/sigp/leveldb.git?rev=aarch64#fa9196d2bdb46002a235ee022b1270650b551142"
 dependencies = [
  "db-key 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "leveldb-sys 2.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3979,6 +3979,7 @@ dependencies = [
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "leveldb 0.8.4 (git+https://github.com/sigp/leveldb.git?rev=aarch64)",
  "lighthouse_metrics 0.1.0",
+ "lru 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 1.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
