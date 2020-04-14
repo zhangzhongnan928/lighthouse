@@ -115,7 +115,8 @@ impl<TSubstream: AsyncRead + AsyncWrite> NetworkBehaviourEventProcess<GossipsubE
                         message: msg,
                     });
                 } else {
-                    debug!(self.log, "A duplicate message was received"; "message" => format!("{:?}", msg), "id" => format!("{}", id));
+                    let id_string = id.clone().to_string().truncate(4);
+                    debug!(self.log, "A duplicate message was received"; "message" => format!("{:?}", msg), "id" => id_string);
                 }
             }
             GossipsubEvent::Subscribed { peer_id, topic } => {
@@ -240,7 +241,8 @@ impl<TSubstream: AsyncRead + AsyncWrite> Behaviour<TSubstream> {
     /// Forwards a message that is waiting in gossipsub's mcache. Messages are only propagated
     /// once validated by the beacon chain.
     pub fn propagate_message(&mut self, propagation_source: &PeerId, message_id: MessageId) {
-        warn!(self.log, "Propagating message"; "id" => format!("{}", message_id), "to_peer" => format!("{}", propagation_source));
+        let id_string = message_id.clone().to_string().truncate(4);
+        warn!(self.log, "Propagating message"; "id" => id_string, "source_peer" => format!("{}", propagation_source));
         self.gossipsub
             .propagate_message(&message_id, propagation_source);
     }
