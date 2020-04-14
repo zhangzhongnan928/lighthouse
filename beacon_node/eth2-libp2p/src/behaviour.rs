@@ -15,7 +15,7 @@ use libp2p::{
 };
 use lru::LruCache;
 use sha2::{Digest, Sha256};
-use slog::{crit, debug, error, o};
+use slog::{debug, error, o, warn};
 use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Duration;
@@ -115,7 +115,7 @@ impl<TSubstream: AsyncRead + AsyncWrite> NetworkBehaviourEventProcess<GossipsubE
                         message: msg,
                     });
                 } else {
-                    debug!(self.log, "A duplicate message was received"; "message" => format!("{:?}", msg));
+                    debug!(self.log, "A duplicate message was received"; "message" => format!("{:?}", msg), "id" => format!("{}", id));
                 }
             }
             GossipsubEvent::Subscribed { peer_id, topic } => {
@@ -240,10 +240,7 @@ impl<TSubstream: AsyncRead + AsyncWrite> Behaviour<TSubstream> {
     /// Forwards a message that is waiting in gossipsub's mcache. Messages are only propagated
     /// once validated by the beacon chain.
     pub fn propagate_message(&mut self, propagation_source: &PeerId, message_id: MessageId) {
-        if self.seen_gossip_messages.get(&message_id).is_some() {
-            crit!(self.log, "Propagating an already seen message"; "message_id" => format!("{}", message_id), "from_peer" => format!("{}", propagation_source));
-        }
-        // going to allow the propagation to exasperate the issue if it exists
+        warn!(self.log, "Propagating message"; "id" => format!("{}", message_id), "to_peer" => format!("{}", propagation_source));
         self.gossipsub
             .propagate_message(&message_id, propagation_source);
     }
