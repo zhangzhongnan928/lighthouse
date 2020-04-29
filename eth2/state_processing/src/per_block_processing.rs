@@ -38,7 +38,7 @@ use arbitrary::Arbitrary;
 
 /// The strategy to be used when validating the block's signatures.
 #[cfg_attr(feature = "arbitrary-fuzz", derive(Arbitrary))]
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum BlockSignatureStrategy {
     /// Do not validate any signature. Use with caution.
     NoVerification,
@@ -50,7 +50,7 @@ pub enum BlockSignatureStrategy {
 
 /// The strategy to be used when validating the block's signatures.
 #[cfg_attr(feature = "arbitrary-fuzz", derive(Arbitrary))]
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum VerifySignatures {
     /// Validate all signatures encountered.
     True,
