@@ -1552,6 +1552,7 @@ name = "hashmap_delay"
 version = "0.2.0"
 dependencies = [
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libp2p 0.13.2 (git+https://github.com/SigP/rust-libp2p?rev=71cf486b4d992862f5a05f9f4ef5e5c1631f4add)",
  "tokio 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-timer 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

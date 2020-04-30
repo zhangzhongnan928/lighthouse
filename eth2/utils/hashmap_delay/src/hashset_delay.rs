@@ -17,7 +17,7 @@ where
     /// The given entries.
     entries: HashMap<K, MapEntry>,
     /// A queue holding the timeouts of each entry.
-    expirations: DelayQueue<K>,
+    pub expirations: DelayQueue<K>,
     /// The default expiration timeout of an entry.
     default_entry_timeout: Duration,
 }
@@ -165,27 +165,78 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use libp2p::core::identity::Keypair;
+    use libp2p::core::PeerId;
 
     #[test]
     fn panic() {
-        let key = 2;
-        let mut map = HashSetDelay::new(Duration::from_millis(50));
-        map.insert(key);
-        let mut delay = tokio::timer::Interval::new_interval(Duration::from_millis(30));
+        let peers: Vec<PeerId> = (0..10)
+            .map(|_| Keypair::generate_secp256k1().public().into())
+            .collect();
+
+        let mut map = HashSetDelay::new(Duration::from_millis(1000));
+
+        for peer in &peers {
+            map.insert(peer.clone());
+        }
+
+        let mut delay = tokio::timer::Interval::new_interval(Duration::from_millis(1100));
         let count = std::sync::Arc::new(std::sync::Mutex::new(0));
 
-        std::thread::sleep(Duration::from_millis(55));
-        tokio::run(futures::future::poll_fn(move || {
-            map.insert(key);
-            if *count.lock().unwrap() % 2 == 0 {}
-            while let Ok(Async::Ready(_)) = delay.poll() {
-                *count.lock().unwrap() += 1;
-            }
-            while let Ok(Async::Ready(Some(key2))) = map.poll() {
-                map.insert(key2);
+        // Read full lines from stdin
+
+        let mut runtime = tokio::runtime::Runtime::new().unwrap();
+        let _ = runtime.block_on::<_, _, ()>(futures::future::poll_fn(move || {
+            println!("Is empty: {}", map.expirations.is_empty());
+            loop {
+                match map.poll() {
+                    Ok(Async::Ready(Some(key2))) => {
+                        println!("peer removed: {}", key2.to_string());
+                        //map.insert(key2);
+                    }
+                    Ok(Async::Ready(None)) => {
+                        println!("Got none");
+                        break;
+                    }
+                    Ok(Async::NotReady) => {
+                        println!("Got not ready");
+                        break;
+                    }
+                    Err(e) => {
+                        println!("Got error {}", e);
+                        break;
+                    }
+                }
             }
 
-            if *count.lock().unwrap() == 10 {
+            /*
+            while let Ok(Async::Ready(_)) = delay.poll() {
+                let peer_index = *count.lock().unwrap() * 11 % 10;
+                //                println!("Removing random peer: {}", peers[peer_index].to_string());
+                //               map.remove(&peers[peer_index]);
+
+                let peer_index = *count.lock().unwrap() * 32 % 10;
+                let peer: PeerId = peers[peer_index].clone();
+                //              println!("Adding a peer: {}", peers[peer_index].to_string());
+                //             map.insert(peer);
+
+                let new_peer: PeerId = Keypair::generate_secp256k1().public().into();
+                println!("Adding new peer: {}", new_peer.to_string());
+                map.insert(new_peer);
+
+                if *count.lock().unwrap() % 2 == 0 {
+                    map.remove(&peers[peer_index]);
+                }
+
+                *count.lock().unwrap() += 1;
+            }
+            */
+
+            if map.expirations.is_empty() {
+                return Ok(Async::Ready(()));
+            }
+
+            if *count.lock().unwrap() == 40 {
                 Ok(Async::Ready(()))
             } else {
                 Ok(Async::NotReady)
