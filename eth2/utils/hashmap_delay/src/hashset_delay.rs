@@ -170,36 +170,44 @@ mod tests {
 
     #[test]
     fn panic() {
-        let peers: Vec<PeerId> = (0..10)
-            .map(|_| Keypair::generate_secp256k1().public().into())
-            .collect();
+        let peers: Vec<u8> = (0..2).collect();
 
         let mut map = HashSetDelay::new(Duration::from_millis(1000));
+        //let mut map = DelayQueue::new();
 
         for peer in &peers {
             map.insert(peer.clone());
+            //map.insert(peer.clone(), Duration::from_millis(1000));
         }
 
-        let mut delay = tokio::timer::Interval::new_interval(Duration::from_millis(1100));
+        let mut delay = tokio::timer::Interval::new_interval(Duration::from_millis(3000));
         let count = std::sync::Arc::new(std::sync::Mutex::new(0));
 
+        let start = std::time::Instant::now();
         // Read full lines from stdin
 
         let mut runtime = tokio::runtime::Runtime::new().unwrap();
         let _ = runtime.block_on::<_, _, ()>(futures::future::poll_fn(move || {
-            println!("Is empty: {}", map.expirations.is_empty());
+            //println!("Is empty: {}", map.expirations.is_empty());
+            //println!("Is empty: {}", map.is_empty());
+
+            //let mut peers_removed = Vec::new();
             loop {
                 match map.poll() {
                     Ok(Async::Ready(Some(key2))) => {
                         println!("peer removed: {}", key2.to_string());
-                        //map.insert(key2);
+                        println!("{:?}", std::time::Instant::now().duration_since(start));
+                        //map.insert(key2.into_inner(), Duration::from_millis(1000));
+                        //      peers_removed.push(key2);
+                        map.insert(key2);
+                        futures::task::current().notify();
                     }
                     Ok(Async::Ready(None)) => {
                         println!("Got none");
                         break;
                     }
                     Ok(Async::NotReady) => {
-                        println!("Got not ready");
+                        //      println!("Got not ready");
                         break;
                     }
                     Err(e) => {
@@ -208,31 +216,40 @@ mod tests {
                     }
                 }
             }
-
             /*
+            for peer in peers_removed {
+                map.remove(&peer);
+                map.insert(peer);
+            }
+            futures::task::current().notify();
+            */
+
             while let Ok(Async::Ready(_)) = delay.poll() {
-                let peer_index = *count.lock().unwrap() * 11 % 10;
+                *count.lock().unwrap() += 1;
+                let peer_index = *count.lock().unwrap() % 2;
                 //                println!("Removing random peer: {}", peers[peer_index].to_string());
                 //               map.remove(&peers[peer_index]);
 
-                let peer_index = *count.lock().unwrap() * 32 % 10;
-                let peer: PeerId = peers[peer_index].clone();
-                //              println!("Adding a peer: {}", peers[peer_index].to_string());
-                //             map.insert(peer);
+                let peer: u8 = peers[peer_index].clone();
+                println!("Adding a peer: {}", peers[peer_index].to_string());
+                println!("{:?}", std::time::Instant::now().duration_since(start));
+                map.insert(peer);
 
-                let new_peer: PeerId = Keypair::generate_secp256k1().public().into();
-                println!("Adding new peer: {}", new_peer.to_string());
-                map.insert(new_peer);
+                //let new_peer: PeerId = Keypair::generate_secp256k1().public().into();
+                //println!("Adding new peer: {}", new_peer.to_string());
+                //map.insert(new_peer);
 
+                /*
                 if *count.lock().unwrap() % 2 == 0 {
                     map.remove(&peers[peer_index]);
                 }
+                */
 
                 *count.lock().unwrap() += 1;
             }
-            */
 
             if map.expirations.is_empty() {
+                //if map.is_empty() {
                 return Ok(Async::Ready(()));
             }
 
