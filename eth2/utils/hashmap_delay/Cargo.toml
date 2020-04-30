@@ -7,3 +7,6 @@ edition = "2018"
 [dependencies]
 tokio-timer = "0.2.12"
 futures = "0.1.29"
+
+[dev-dependencies]
+tokio = "0.1.22"

@@ -144,7 +144,7 @@ where
     K: std::cmp::Eq + std::hash::Hash + std::clone::Clone,
 {
     type Item = K;
-    type Error = &'static str;
+    type Error = String;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
         match self.expirations.poll() {
@@ -152,12 +152,44 @@ where
                 let key = key.into_inner();
                 match self.entries.remove(&key) {
                     Some(_) => Ok(Async::Ready(Some(key))),
-                    None => Err("Value no longer exists in expirations"),
+                    None => Err("Value no longer exists in expirations".into()),
                 }
             }
             Ok(Async::Ready(None)) => Ok(Async::Ready(None)),
             Ok(Async::NotReady) => Ok(Async::NotReady),
-            Err(_) => Err("Error polling HashSetDelay"),
+            Err(e) => Err(format!("Error polling HashSetDelay: {}", e)),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn panic() {
+        let key = 2;
+        let mut map = HashSetDelay::new(Duration::from_millis(50));
+        map.insert(key);
+        let mut delay = tokio::timer::Interval::new_interval(Duration::from_millis(30));
+        let count = std::sync::Arc::new(std::sync::Mutex::new(0));
+
+        std::thread::sleep(Duration::from_millis(55));
+        tokio::run(futures::future::poll_fn(move || {
+            map.insert(key);
+            if *count.lock().unwrap() % 2 == 0 {}
+            while let Ok(Async::Ready(_)) = delay.poll() {
+                *count.lock().unwrap() += 1;
+            }
+            while let Ok(Async::Ready(Some(key2))) = map.poll() {
+                map.insert(key2);
+            }
+
+            if *count.lock().unwrap() == 10 {
+                Ok(Async::Ready(()))
+            } else {
+                Ok(Async::NotReady)
+            }
+        }));
     }
 }
