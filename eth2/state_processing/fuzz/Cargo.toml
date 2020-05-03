@@ -25,6 +25,11 @@ members = ["."]
 name = "fuzz_target_1"
 path = "fuzz_targets/fuzz_target_1.rs"
 
+[[bin]]
+name = "fuzz_target_2"
+path = "fuzz_targets/fuzz_target_2.rs"
+
+
 [patch]
 [patch.crates-io]
 tree_hash = { path = "../../utils/tree_hash" }
