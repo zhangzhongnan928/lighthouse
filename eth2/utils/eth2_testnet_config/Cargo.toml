@@ -7,11 +7,10 @@ edition = "2018"
 build = "build.rs"
 
 [build-dependencies]
-reqwest = "0.10.4"
+reqwest = { version = "0.10.4", features = ["blocking"] }
 
 [dev-dependencies]
 tempdir = "0.3.7"
-reqwest = { version = "0.10.4", features = ["blocking"] }
 
 [dependencies]
 serde = "1.0.106"
