@@ -23,6 +23,8 @@ use tokio::util::FutureExt;
 use tokio_io_timeout::TimeoutStream;
 use types::EthSpec;
 
+use arbitrary::Arbitrary;
+
 /// The maximum bytes that can be sent across the RPC.
 const MAX_RPC_SIZE: usize = 1_048_576; // 1M
 /// The protocol prefix the RPC protocol id.
@@ -34,7 +36,7 @@ const TTFB_TIMEOUT: u64 = 5;
 const REQUEST_TIMEOUT: u64 = 15;
 
 /// Protocol names to be used.
-#[derive(Debug, Clone, Copy)]
+#[derive(Arbitrary, Debug, Clone, Copy)]
 pub enum Protocol {
     /// The Status protocol name.
     Status,

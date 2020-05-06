@@ -16,7 +16,7 @@ pub use methods::{
     ErrorMessage, MetaData, RPCCodedResponse, RPCResponse, RPCResponseErrorCode, RequestId,
     ResponseTermination, StatusMessage,
 };
-pub use protocol::{Protocol, RPCError, RPCProtocol, RPCRequest};
+pub use protocol::{Protocol, RPCError, RPCProtocol, RPCRequest, Version, Encoding, ProtocolId};
 use slog::{debug, o};
 use std::marker::PhantomData;
 use std::time::Duration;
@@ -24,6 +24,7 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use types::EthSpec;
 
 pub(crate) mod codec;
+pub use codec::SSZSnappyInboundCodec;
 mod handler;
 pub mod methods;
 mod protocol;
