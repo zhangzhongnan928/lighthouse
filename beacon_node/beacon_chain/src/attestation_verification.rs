@@ -399,9 +399,9 @@ impl<T: BeaconChainTypes> VerifiedUnaggregatedAttestation<T> {
 
         // Check to ensure that the attestation is "unaggregated". I.e., it has exactly one
         // aggregation bit set.
-        let num_aggreagtion_bits = attestation.aggregation_bits.num_set_bits();
-        if num_aggreagtion_bits != 1 {
-            return Err(Error::NotExactlyOneAggregationBitSet(num_aggreagtion_bits));
+        let num_aggregation_bits = attestation.aggregation_bits.num_set_bits();
+        if num_aggregation_bits != 1 {
+            return Err(Error::NotExactlyOneAggregationBitSet(num_aggregation_bits));
         }
 
         // Attestations must be for a known block. If the block is unknown, we simply drop the

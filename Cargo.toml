@@ -57,6 +57,7 @@ members = [
     "testing/simulator",
     "testing/ef_tests",
     "testing/eth1_test_rig",
+    "testing/fork_choice_tests",
     "testing/node_test_rig",
     "testing/state_transition_vectors",
 

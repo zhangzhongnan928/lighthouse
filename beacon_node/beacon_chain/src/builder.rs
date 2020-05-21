@@ -494,6 +494,7 @@ where
     ///
     /// If this builder is being "resumed" from disk, then rebuild the last fork choice stored to
     /// the database. Otherwise, create a new, empty fork choice.
+    // FIXME(sproul): should probably be renamed
     pub fn reduced_tree_fork_choice(mut self) -> Result<Self, String> {
         let store = self
             .store

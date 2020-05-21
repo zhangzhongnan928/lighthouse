@@ -1,0 +1,14 @@
+[package]
+name = "fork_choice_tests"
+version = "0.1.0"
+authors = ["Michael Sproul <michael@sigmaprime.io>"]
+edition = "2018"
+
+[dependencies]
+beacon_chain = { path = "../../beacon_node/beacon_chain" }
+types = { path = "../../consensus/types" }
+store = { path = "../../beacon_node/store" }
+genesis = { path = "../../beacon_node/genesis" }
+sloggers = "*"
+tempfile = "*"
+itertools = "*"
