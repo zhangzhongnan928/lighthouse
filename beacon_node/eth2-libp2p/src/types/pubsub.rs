@@ -9,7 +9,7 @@ use std::boxed::Box;
 use types::SubnetId;
 use types::{
     Attestation, AttesterSlashing, EthSpec, ProposerSlashing, SignedAggregateAndProof,
-    SignedBeaconBlock, VoluntaryExit,
+    SignedBeaconBlock, SignedVoluntaryExit,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -21,7 +21,7 @@ pub enum PubsubMessage<T: EthSpec> {
     /// Gossipsub message providing notification of a raw un-aggregated attestation with its shard id.
     Attestation(Box<(SubnetId, Attestation<T>)>),
     /// Gossipsub message providing notification of a voluntary exit.
-    VoluntaryExit(Box<VoluntaryExit>),
+    VoluntaryExit(Box<SignedVoluntaryExit>),
     /// Gossipsub message providing notification of a new proposer slashing.
     ProposerSlashing(Box<ProposerSlashing>),
     /// Gossipsub message providing notification of a new attester slashing.
@@ -115,7 +115,7 @@ impl<T: EthSpec> PubsubMessage<T> {
                             return Ok(PubsubMessage::BeaconBlock(Box::new(beacon_block)));
                         }
                         GossipKind::VoluntaryExit => {
-                            let voluntary_exit = VoluntaryExit::from_ssz_bytes(data)
+                            let voluntary_exit = SignedVoluntaryExit::from_ssz_bytes(data)
                                 .map_err(|e| format!("{:?}", e))?;
                             return Ok(PubsubMessage::VoluntaryExit(Box::new(voluntary_exit)));
                         }
